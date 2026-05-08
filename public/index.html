@@ -1,0 +1,3651 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DocExtraction</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="card">
+        <div class="topbar">
+          <div id="eyebrowText" class="eyebrow">Public Upload URL</div>
+          <div class="topbar-actions">
+            <button id="chatButton" type="button" class="icon-button">Chat</button>
+            <button id="settingsButton" type="button" class="icon-button">Settings</button>
+          </div>
+        </div>
+
+        <h1>DocExtraction</h1>
+        <div class="app-version-row">
+          <span id="versionLabel" class="version-label"></span>
+          <strong id="appVersionText" class="version-value">v...</strong>
+        </div>
+        <p id="introText" class="intro"></p>
+
+        <form id="uploadForm" class="upload-form">
+          <label class="field">
+            <span id="senderNameLabel"></span>
+            <input id="senderNameInput" type="text" name="senderName" />
+          </label>
+
+          <label class="field">
+            <span id="senderEmailLabel"></span>
+            <input id="senderEmail" type="email" name="senderEmail" />
+          </label>
+
+          <label class="field">
+            <span id="noteLabel"></span>
+            <textarea id="noteInput" name="note" rows="4"></textarea>
+          </label>
+
+          <label class="dropzone" for="fileInput" id="dropzone">
+            <input
+              id="fileInput"
+              type="file"
+              name="files"
+              multiple
+              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.csv"
+            />
+            <strong id="dropzoneTitle"></strong>
+            <span id="dropzoneHint"></span>
+          </label>
+
+          <div id="fileList" class="file-list empty"></div>
+
+          <button id="submitButton" type="submit"></button>
+          <div id="uploadProgressCard" class="upload-progress-card idle" aria-live="polite">
+            <div class="upload-progress-head">
+              <span id="uploadProgressLabel"></span>
+              <strong id="uploadProgressPercent">0%</strong>
+            </div>
+            <div class="upload-progress-bar">
+              <span id="uploadProgressFill" style="width: 0%"></span>
+            </div>
+            <div id="uploadProgressMeta" class="upload-progress-meta"></div>
+          </div>
+        </form>
+
+        <section class="history-panel">
+          <div class="history-panel-head">
+            <div>
+              <div id="historyKicker" class="status-kicker"></div>
+              <h2 id="historyTitle"></h2>
+            </div>
+            <button id="clearHistoryButton" type="button" class="history-clear-button"></button>
+          </div>
+          <div id="historyList" class="history-list empty"></div>
+        </section>
+
+        <section class="history-panel action-panel">
+          <div class="history-panel-head">
+            <div>
+              <div id="actionPanelKicker" class="status-kicker"></div>
+              <h2 id="actionPanelTitle"></h2>
+            </div>
+          </div>
+
+          <div class="quick-actions">
+            <button id="checkButton" type="button" class="secondary-button"></button>
+            <button
+              id="exportButton"
+              type="button"
+              class="secondary-button secondary-button-dark"
+            ></button>
+          </div>
+
+          <section class="action-response-grid single-column">
+            <article id="checkResponseCard" class="action-response-card">
+              <div class="action-response-head">
+                <strong id="checkResponseTitle"></strong>
+                <span id="checkResponseBadge" class="mini-badge idle"></span>
+              </div>
+              <div id="checkResponseBody" class="action-response-body"></div>
+            </article>
+          </section>
+        </section>
+
+        <section id="statusPanel" class="status-panel is-idle">
+          <div class="status-panel-head">
+            <div>
+              <div id="statusKicker" class="status-kicker"></div>
+              <h2 id="statusTitle"></h2>
+            </div>
+            <div id="statusBadge" class="status-badge idle"></div>
+          </div>
+
+          <div class="status-summary">
+            <div class="summary-card">
+              <span id="statusMessageLabel" class="summary-label"></span>
+              <strong id="statusMessage"></strong>
+            </div>
+            <div class="summary-card">
+              <span id="statusResultLabel" class="summary-label"></span>
+              <strong id="statusNumbers"></strong>
+            </div>
+          </div>
+
+          <div id="statusMeta" class="status-meta"></div>
+          <div id="statusTimeline" class="status-timeline"></div>
+        </section>
+      </section>
+    </main>
+
+    <div id="settingsModal" class="modal-backdrop hidden">
+      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <div class="modal-head">
+          <div>
+            <div id="settingsKicker" class="status-kicker"></div>
+            <h2 id="settingsTitle"></h2>
+          </div>
+          <button id="closeSettingsButton" type="button" class="close-button"></button>
+        </div>
+
+        <form id="settingsForm" class="modal-form">
+          <section class="settings-status-grid">
+            <article class="settings-status-card">
+              <div class="settings-status-head">
+                <span id="settingsWebhookStatusLabel"></span>
+                <em id="currentWebhookStatus" class="preview-status idle"></em>
+              </div>
+              <strong id="currentWebhookUrl"></strong>
+            </article>
+
+            <article class="settings-status-card">
+              <div class="settings-status-head">
+                <span id="settingsActionWebhookStatusLabel"></span>
+                <em id="currentActionWebhookStatus" class="preview-status idle"></em>
+              </div>
+              <strong id="currentActionWebhookUrl"></strong>
+            </article>
+
+            <article class="settings-status-card">
+              <div class="settings-status-head">
+                <span id="settingsCommandWebhookStatusLabel"></span>
+                <em id="currentCommandWebhookStatus" class="preview-status idle"></em>
+              </div>
+              <strong id="currentCommandWebhookUrl"></strong>
+            </article>
+
+            <article class="settings-status-card">
+              <div class="settings-status-head">
+                <span id="settingsVersionStatusLabel"></span>
+                <em class="preview-status success" id="currentVersionStatus"></em>
+              </div>
+              <strong id="currentAppVersionValue"></strong>
+            </article>
+          </section>
+
+          <div class="field">
+            <span id="themeSectionLabel"></span>
+            <div class="theme-toggle">
+              <button
+                id="lightThemeButton"
+                type="button"
+                class="theme-option"
+                data-theme-option="light"
+                aria-pressed="false"
+              ></button>
+              <button
+                id="darkThemeButton"
+                type="button"
+                class="theme-option"
+                data-theme-option="dark"
+                aria-pressed="false"
+              ></button>
+            </div>
+            <div id="themeHelperText" class="theme-helper"></div>
+          </div>
+
+          <div class="field">
+            <span id="languageSectionLabel"></span>
+            <div class="theme-toggle">
+              <button
+                id="thaiLanguageButton"
+                type="button"
+                class="theme-option"
+                data-language-option="th"
+                aria-pressed="false"
+              ></button>
+              <button
+                id="englishLanguageButton"
+                type="button"
+                class="theme-option"
+                data-language-option="en"
+                aria-pressed="false"
+              ></button>
+            </div>
+            <div id="languageHelperText" class="theme-helper"></div>
+          </div>
+
+          <label class="field">
+            <span id="settingsWebhookInputLabel"></span>
+            <input id="settingsWebhookUrl" type="url" name="webhookUrl" required />
+          </label>
+
+          <label class="field">
+            <span id="settingsActionWebhookInputLabel"></span>
+            <input id="settingsActionWebhookUrl" type="url" name="actionWebhookUrl" required />
+          </label>
+
+          <label class="field">
+            <span id="settingsCommandWebhookInputLabel"></span>
+            <input id="settingsCommandWebhookUrl" type="url" name="commandWebhookUrl" required />
+          </label>
+
+          <div id="settingsMessage" class="settings-message idle"></div>
+
+          <div class="modal-actions">
+            <button id="saveSettingsButton" type="submit"></button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <div id="chatModal" class="modal-backdrop hidden">
+      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="chatTitle">
+        <div class="modal-head">
+          <div>
+            <div id="chatKicker" class="status-kicker"></div>
+            <h2 id="chatTitle"></h2>
+          </div>
+          <button id="closeChatButton" type="button" class="close-button"></button>
+        </div>
+
+        <form id="chatForm" class="modal-form">
+          <label class="field">
+            <span id="chatNodeLabel"></span>
+            <select id="chatNodeSelect" name="node" required></select>
+          </label>
+
+          <label class="field">
+            <span id="chatInputLabel"></span>
+            <textarea
+              id="chatInput"
+              name="message"
+              rows="6"
+              class="chat-textarea"
+              placeholder="Type a command or message"
+              required
+            ></textarea>
+          </label>
+
+          <div id="chatMessage" class="settings-message idle"></div>
+
+          <article id="chatResponseCard" class="action-response-card">
+            <div class="action-response-head">
+              <strong id="chatResponseTitle"></strong>
+              <span id="chatResponseBadge" class="mini-badge idle"></span>
+            </div>
+            <div id="chatResponseBody" class="action-response-body"></div>
+          </article>
+
+          <div class="modal-actions">
+            <button id="runChatCommandButton" type="submit"></button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <div id="exportPreviewModal" class="modal-backdrop hidden">
+      <section class="modal-card export-modal-card" role="dialog" aria-modal="true" aria-labelledby="exportModalTitle">
+        <div class="modal-head">
+          <div>
+            <div id="exportModalKicker" class="status-kicker"></div>
+            <h2 id="exportModalTitle"></h2>
+          </div>
+          <button id="closeExportModalButton" type="button" class="close-button"></button>
+        </div>
+
+        <div class="modal-form">
+          <div id="exportModalMessage" class="settings-message idle"></div>
+
+          <article id="exportModalResponseCard" class="action-response-card">
+            <div class="action-response-head">
+              <strong id="exportModalResponseTitle"></strong>
+              <span id="exportModalResponseBadge" class="mini-badge idle"></span>
+            </div>
+            <div id="exportModalResponseBody" class="action-response-body"></div>
+          </article>
+
+          <div class="modal-actions">
+            <button id="cancelEditExportButton" type="button" class="secondary-button"></button>
+            <button id="editExportButton" type="button" class="secondary-button"></button>
+            <button id="exportAndClearConfirmButton" type="button" class="secondary-button secondary-button-dark"></button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const THEME_STORAGE_KEY = "invoice-extraction-theme";
+      const LANGUAGE_STORAGE_KEY = "invoice-extraction-language";
+      const SENDER_NAME_STORAGE_KEY = "invoice-extraction-sender-name";
+      const SENDER_EMAIL_STORAGE_KEY = "invoice-extraction-sender-email";
+      const TRANSLATIONS = {
+        th: {
+          documentTitle: "DocExtraction",
+          eyebrow: "Public Upload URL",
+          chatButton: "แชท",
+          settingsButton: "ตั้งค่า",
+          intro:
+            "อัปโหลดหลายไฟล์ได้ในครั้งเดียว รองรับ PDF, PNG, JPG, Word, Excel และ CSV",
+          senderNameLabel: "ชื่อผู้ส่ง",
+          senderNamePlaceholder: "เช่น Natap",
+          senderEmailLabel: "อีเมล",
+          senderEmailPlaceholder: "name@example.com",
+          checkButton: "ตรวจสอบ",
+          exportButton: "Export",
+          checkResponseTitle: "ผลลัพธ์ปุ่มตรวจสอบ",
+          actionCardIdleBody: "ระบบจะแสดงค่าที่ตอบกลับจาก Respond to Webhook ตรงนี้",
+          exportModalKicker: "Export",
+          exportModalTitle: "Export Preview",
+          exportModalResponseTitle: "Export Response",
+          exportModalIdle: "กด Export เพื่อโหลดข้อมูลจาก Respond to Webhook",
+          exportModalLoading: "กำลังโหลดข้อมูล export...",
+          exportModalTableEmpty: "ไม่มีข้อมูลสำหรับแสดงในตาราง",
+          exportModalEditButton: "Edit",
+          exportModalSaveEditButton: "Save Edit",
+          exportModalCancelEditButton: "ยกเลิกการ Edit",
+          exportModalDeleteRowButton: "ลบแถว",
+          exportModalDeleteRowConfirm: "ยืนยันการลบแถวนี้ใช่หรือไม่?",
+          exportModalDeleteLoading: "กำลังส่งข้อมูลแถวที่ลบแล้ว...",
+          exportModalDeleteSuccess: "ส่งข้อมูลแถวที่ลบแล้วเรียบร้อย",
+          exportModalDeleteRequest: "คำสั่งลบแถว",
+          exportModalEditing: "กำลังแก้ไขข้อมูลในตาราง",
+          exportModalEditSuccess: "ส่งข้อมูลที่แก้ไขแล้วเรียบร้อย",
+          exportModalEditRequest: "คำสั่ง Edit",
+          exportModalEditLoading: "กำลังส่งข้อมูลที่แก้ไขแล้ว...",
+          exportAndClearConfirmButton: "Export and Clear",
+          exportAndClearLoading: "กำลังส่งคำสั่ง Export and Clear...",
+          exportAndClearRequest: "คำสั่ง Export and Clear",
+          noteLabel: "หมายเหตุ",
+          notePlaceholder: "ข้อมูลเพิ่มเติมที่จะส่งไปพร้อมกับชุดไฟล์นี้",
+          dropzoneTitle: "ลากไฟล์มาวาง หรือกดเพื่อเลือกไฟล์",
+          dropzoneHint: "เลือกหลายไฟล์ได้ในหนึ่งครั้ง",
+          fileListEmpty: "ยังไม่ได้เลือกไฟล์",
+          uploadButton: "อัปโหลดและส่งเข้า webhook",
+          uploadProgressLabel: "ความคืบหน้าการอัปโหลด",
+          uploadProgressIdle: "พร้อมเริ่มอัปโหลด",
+          exportPreviewSortId: "เรียง id",
+          statusKicker: "Transfer Console",
+          statusTitle: "สถานะการส่งไฟล์",
+          statusMessageLabel: "ข้อความ",
+          statusResultLabel: "ผลลัพธ์",
+          versionLabel: "เวอร์ชัน",
+          actionPanelKicker: "Quick Actions",
+          actionPanelTitle: "คำสั่งเอกสาร",
+          settingsKicker: "Settings",
+          settingsTitle: "ตั้งค่า Webhook และการแสดงผล",
+          closeButton: "ปิด",
+          chatKicker: "Command Chat",
+          chatTitle: "Command Webhook",
+          chatNodeLabel: "Node",
+          chatNodePlaceholder: "Select a node",
+          chatNodeLoading: "Loading nodes...",
+          chatNodeLoadFailed: "Failed to load node list",
+          chatNodeRequired: "Please select a node first",
+          chatInputLabel: "Command",
+          chatInputPlaceholder: "Type the message or command to send to n8n",
+          chatRunButton: "Run Command",
+          chatMessageIdle: "Ready to send a message to the command webhook",
+          chatSending: "Sending command...",
+          chatSuccess: "Command sent successfully",
+          chatFailed: "Command failed",
+          chatResponseTitle: "Command Response",
+          chatResponseIdle: "The webhook response will appear here",
+          chatResponseSending: "Waiting for the webhook response...",
+          chatCommandLabel: "Command",
+          chatNodeMetaLabel: "Node",
+          chatCommandRequired: "Please enter a message or command first",
+          settingsWebhookStatusLabel: "Webhook URL",
+          settingsActionWebhookStatusLabel: "Action Webhook URL",
+          settingsCommandWebhookStatusLabel: "Command Webhook URL",
+          settingsVersionStatusLabel: "Application Version",
+          settingsCommandWebhookStatusLabel: "Command Webhook URL",
+          themeLabel: "Theme",
+          themeLight: "White Theme",
+          themeDark: "Dark Theme",
+          themeHelper: "เปลี่ยนโทนการแสดงผลได้ทันที และระบบจะจำค่าไว้ใน browser นี้",
+          languageLabel: "ภาษา",
+          languageThai: "ภาษาไทย",
+          languageEnglish: "English",
+          languageHelper: "สลับภาษาได้ทันที และระบบจะจำค่าที่เลือกไว้ใน browser นี้",
+          settingsWebhookInputLabel: "Webhook URL",
+          settingsActionWebhookInputLabel: "Action Webhook URL",
+          settingsCommandWebhookInputLabel: "Command Webhook URL",
+          settingsWebhookPlaceholder: "https://your-domain/webhook/upload",
+          settingsActionWebhookPlaceholder: "https://your-domain/webhook/action",
+          settingsCommandWebhookPlaceholder: "https://your-domain/webhook/command",
+          saveSettingsButton: "บันทึกการตั้งค่า",
+          statusChecking: "กำลังตรวจสอบ",
+          statusConfigured: "พร้อมใช้งาน",
+          statusNotConfigured: "ยังไม่ตั้งค่า",
+          versionReady: "ล่าสุด",
+          loading: "กำลังโหลด...",
+          notConfigured: "ยังไม่ได้ตั้งค่า",
+          settingsLoadingCurrent: "กำลังอ่านค่าปัจจุบัน...",
+          settingsReady: "พร้อมแก้ไขการตั้งค่า webhook",
+          savingSettings: "กำลังบันทึกการตั้งค่า...",
+          settingsSaved: "บันทึกการตั้งค่าเรียบร้อยแล้ว",
+          failedLoadSettings: "โหลดการตั้งค่า webhook ไม่สำเร็จ",
+          failedSaveSettings: "บันทึกการตั้งค่าไม่สำเร็จ",
+          actionLabel: "Action",
+          emailMetaLabel: "Email",
+          webhookMetaLabel: "Webhook",
+          waiting: "Waiting",
+          waitingSub: "เลือกไฟล์แล้วเริ่ม workflow ได้ทันที",
+          ready: "พร้อมใช้งาน",
+          readyMessage: "ระบบพร้อมรับไฟล์และส่งต่อเข้า webhook",
+          readyResult: "ยังไม่มีการอัปโหลดล่าสุด",
+          readyMeta: "รอการอัปโหลดครั้งถัดไป",
+          processing: "กำลังประมวลผล",
+          processingMessage: "กำลัง split, preprocess และส่งไฟล์เข้า webhook",
+          queuedFiles: "{count} ไฟล์ต้นฉบับอยู่ในคิว",
+          startedAt: "เริ่มเมื่อ {timestamp}",
+          checkingActionStatus: "กำลังตรวจสอบ",
+          exportingActionStatus: "กำลัง Export",
+          checkingActionMessage: "กำลังส่งคำสั่งตรวจสอบไปที่ action webhook",
+          exportingActionMessage: "กำลังส่งคำสั่ง Export ไปที่ action webhook",
+          preparingRequest: "กำลังเตรียมคำสั่ง",
+          checkRequest: "คำสั่งตรวจสอบ",
+          exportRequest: "คำสั่ง Export",
+          sendingCommand: "กำลังส่งคำสั่ง",
+          waitingRespondToWebhook: "กำลังรอข้อมูลจาก Respond to Webhook...",
+          completed: "สำเร็จ",
+          needsReview: "ต้องตรวจสอบ",
+          uploadSuccessDefault: "ส่งไฟล์สำเร็จ",
+          uploadErrorDefault: "พบปัญหาระหว่างส่งไฟล์",
+          deliveriesCompleted: "{successCount}/{outboundFileCount} รายการส่งสำเร็จ",
+          resultsMixed: "{successCount} สำเร็จ | {failureCount} ไม่สำเร็จ",
+          batchLabel: "Batch {batchId}",
+          updatedAt: "อัปเดต {timestamp}",
+          delivered: "ส่งสำเร็จ",
+          failed: "ส่งไม่สำเร็จ",
+          sourceLabel: "ต้นฉบับ",
+          pageLabel: "หน้า",
+          kindLabel: "ชนิด",
+          noExtraDetails: "ไม่มีรายละเอียดเพิ่มเติม",
+          issueDetected: "พบปัญหา",
+          noAdditionalDetails: "ไม่มีรายละเอียดเพิ่มเติมจากระบบ",
+          noResponseBody: "ไม่มีข้อมูลตอบกลับจาก webhook",
+          responseEmptyArray: "Webhook ตอบกลับเป็น array ว่าง",
+          responseEmptyObject: "Webhook ตอบกลับเป็น object ว่าง",
+          responseItemLabel: "รายการ {index}",
+          notUsedYet: "ยังไม่เรียกใช้งาน",
+          successShort: "สำเร็จ",
+          failedShort: "ไม่สำเร็จ",
+          connectionFailed: "เชื่อมต่อไม่สำเร็จ",
+          emailRequiredMessage: "กรุณากรอกอีเมลก่อนใช้งานปุ่มนี้",
+          emailRequiredError: "Email is required",
+          noFilesSelectedError: "กรุณาเลือกไฟล์อย่างน้อย 1 ไฟล์",
+          serverConnectionFailed: "เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ",
+          networkRequestLabel: "คำขอเครือข่าย",
+          removeButton: "ลบ",
+          removeFileAria: "ลบไฟล์ {name}",
+          queuedLabel: "รอคิว {index}",
+          queuedMessage: "{name} กำลังรอประมวลผล",
+          requestSendingMessage: "{email} กำลังถูกส่งไปยัง webhook",
+          unnamedFile: "ไฟล์ไม่มีชื่อ"
+        },
+        en: {
+          documentTitle: "DocExtraction",
+          eyebrow: "Public Upload URL",
+          chatButton: "Chat",
+          settingsButton: "Settings",
+          intro:
+            "Upload multiple files in one batch. Supported formats: PDF, PNG, JPG, Word, Excel, and CSV.",
+          senderNameLabel: "Sender Name",
+          senderNamePlaceholder: "For example Natap",
+          senderEmailLabel: "Email",
+          senderEmailPlaceholder: "name@example.com",
+          checkButton: "Check",
+          exportButton: "Export",
+          checkResponseTitle: "Check Action Response",
+          actionCardIdleBody: "The Respond to Webhook payload will appear here.",
+          exportModalKicker: "Export",
+          exportModalTitle: "Export Preview",
+          exportModalResponseTitle: "Export Response",
+          exportModalIdle: "Click Export to load data from Respond to Webhook.",
+          exportModalLoading: "Loading export data...",
+          exportModalTableEmpty: "No data available for table display.",
+          exportModalEditButton: "Edit",
+          exportModalSaveEditButton: "Save Edit",
+          exportModalCancelEditButton: "Cancel Edit",
+          exportModalDeleteRowButton: "Delete Row",
+          exportModalDeleteRowConfirm: "Do you want to delete this row?",
+          exportModalDeleteLoading: "Sending deleted row data...",
+          exportModalDeleteSuccess: "Deleted row data sent successfully.",
+          exportModalDeleteRequest: "Delete row request",
+          exportModalEditing: "Editing table data.",
+          exportModalEditSuccess: "Edited data sent successfully.",
+          exportModalEditRequest: "Edit request",
+          exportModalEditLoading: "Sending edited data...",
+          exportAndClearConfirmButton: "Export and Clear",
+          exportAndClearLoading: "Sending the Export and Clear action...",
+          exportAndClearRequest: "Export and Clear request",
+          noteLabel: "Note",
+          notePlaceholder: "Additional information to send with this file batch",
+          dropzoneTitle: "Drop files here or click to browse",
+          dropzoneHint: "You can select multiple files at once",
+          fileListEmpty: "No files selected yet",
+          uploadButton: "Upload and send to webhook",
+          uploadProgressLabel: "Upload Progress",
+          uploadProgressIdle: "Ready to start uploading",
+          exportPreviewSortId: "Sort id",
+          statusKicker: "Transfer Console",
+          statusTitle: "Upload Status",
+          statusMessageLabel: "Message",
+          statusResultLabel: "Result",
+          versionLabel: "Version",
+          actionPanelKicker: "Quick Actions",
+          actionPanelTitle: "Document Actions",
+          settingsKicker: "Settings",
+          settingsTitle: "Webhook and Display Settings",
+          closeButton: "Close",
+          chatKicker: "Command Chat",
+          chatTitle: "Send a command to the webhook",
+          chatNodeLabel: "Node",
+          chatNodePlaceholder: "Select a node",
+          chatNodeLoading: "Loading nodes...",
+          chatNodeLoadFailed: "Failed to load node list",
+          chatNodeRequired: "Please select a node first.",
+          chatInputLabel: "Message or command",
+          chatInputPlaceholder: "Type the message or command to send to n8n",
+          chatRunButton: "Run Command",
+          chatMessageIdle: "Ready to send a message to the command webhook.",
+          chatSending: "Sending command...",
+          chatSuccess: "Command sent successfully.",
+          chatFailed: "Command failed.",
+          chatResponseTitle: "Command Response",
+          chatResponseIdle: "The webhook response will appear here.",
+          chatResponseSending: "Waiting for the webhook response...",
+          chatCommandLabel: "Command",
+          chatNodeMetaLabel: "Node",
+          chatCommandRequired: "Please enter a message or command first.",
+          settingsWebhookStatusLabel: "Webhook URL",
+          settingsActionWebhookStatusLabel: "Action Webhook URL",
+          settingsCommandWebhookStatusLabel: "Command Webhook URL",
+          settingsVersionStatusLabel: "Application Version",
+          themeLabel: "Theme",
+          themeLight: "White Theme",
+          themeDark: "Dark Theme",
+          themeHelper: "Switch the interface theme instantly. The selected option is saved in this browser.",
+          languageLabel: "Language",
+          languageThai: "Thai",
+          languageEnglish: "English",
+          languageHelper: "Switch the interface language instantly. The selected option is saved in this browser.",
+          settingsWebhookInputLabel: "Webhook URL",
+          settingsActionWebhookInputLabel: "Action Webhook URL",
+          settingsCommandWebhookInputLabel: "Command Webhook URL",
+          settingsWebhookPlaceholder: "https://your-domain/webhook/upload",
+          settingsActionWebhookPlaceholder: "https://your-domain/webhook/action",
+          settingsCommandWebhookPlaceholder: "https://your-domain/webhook/command",
+          saveSettingsButton: "Save Settings",
+          statusChecking: "Checking",
+          statusConfigured: "Ready",
+          statusNotConfigured: "Not configured",
+          versionReady: "Current",
+          loading: "Loading...",
+          notConfigured: "Not configured",
+          settingsLoadingCurrent: "Loading current settings...",
+          settingsReady: "Webhook settings are ready to edit.",
+          savingSettings: "Saving settings...",
+          settingsSaved: "Settings saved successfully.",
+          failedLoadSettings: "Failed to load webhook settings",
+          failedSaveSettings: "Failed to save settings",
+          actionLabel: "Action",
+          emailMetaLabel: "Email",
+          webhookMetaLabel: "Webhook",
+          waiting: "Waiting",
+          waitingSub: "Select files and start the workflow when ready.",
+          ready: "Ready",
+          readyMessage: "The system is ready to process files and send them to the webhook.",
+          readyResult: "No uploads have been sent yet.",
+          readyMeta: "Waiting for the next upload.",
+          processing: "Processing",
+          processingMessage: "Converting PDF pages to images and forwarding other files as original.",
+          queuedFiles: "{count} source files queued",
+          startedAt: "Started at {timestamp}",
+          checkingActionStatus: "Checking",
+          exportingActionStatus: "Exporting",
+          checkingActionMessage: "Sending the check action to the action webhook.",
+          exportingActionMessage: "Sending the export action to the action webhook.",
+          preparingRequest: "Preparing request",
+          checkRequest: "Check request",
+          exportRequest: "Export request",
+          sendingCommand: "Sending request",
+          waitingRespondToWebhook: "Waiting for the Respond to Webhook payload...",
+          completed: "Completed",
+          needsReview: "Needs review",
+          uploadSuccessDefault: "The upload completed successfully.",
+          uploadErrorDefault: "A problem occurred during upload.",
+          deliveriesCompleted: "{successCount}/{outboundFileCount} deliveries completed",
+          resultsMixed: "{successCount} succeeded | {failureCount} failed",
+          batchLabel: "Batch {batchId}",
+          updatedAt: "Updated {timestamp}",
+          delivered: "Delivered",
+          failed: "Failed",
+          sourceLabel: "Source",
+          pageLabel: "Page",
+          kindLabel: "Kind",
+          noExtraDetails: "No extra details available.",
+          issueDetected: "Issue detected",
+          noAdditionalDetails: "No additional details were returned.",
+          noResponseBody: "No response body returned from the webhook.",
+          responseEmptyArray: "The webhook returned an empty array.",
+          responseEmptyObject: "The webhook returned an empty object.",
+          responseItemLabel: "Item {index}",
+          notUsedYet: "Not used yet",
+          successShort: "Success",
+          failedShort: "Failed",
+          connectionFailed: "Connection failed",
+          emailRequiredMessage: "Please enter an email before using this action.",
+          emailRequiredError: "Email is required",
+          noFilesSelectedError: "Please select at least one file.",
+          serverConnectionFailed: "Could not connect to the server.",
+          networkRequestLabel: "Network Request",
+          removeButton: "Remove",
+          removeFileAria: "Remove file {name}",
+          queuedLabel: "Queued {index}",
+          queuedMessage: "{name} is waiting to be processed.",
+          requestSendingMessage: "{email} is being sent to the webhook.",
+          unnamedFile: "Unnamed file",
+          processingSequentialMessage: "Sending files one by one to avoid timeout.",
+          sequentialProgressSummary: "{current}/{total} files completed",
+          sequentialQueuedDetail: "{name} is waiting in queue.",
+          sequentialUploadingDetail: "Uploading {name} to the local bridge ({percent}).",
+          sequentialProcessingDetail:
+            "Server is converting PDF pages or forwarding the original file for {name}.",
+          sequentialPdfRenderDetail: "Splitting PDF {name}: page {currentPage}/{pageCount}.",
+          sequentialPdfForwardDetail:
+            "Sending PDF pages for {name}: {sentPages}/{pageCount} pages sent.",
+          sequentialImageForwardDetail: "Sending OCR-ready image for {name}.",
+          sequentialOriginalForwardDetail: "Sending original file {name}.",
+          sequentialPhaseDetail: "{name}: {phase} ({currentPage}/{pageCount}, candidate: {candidate})",
+          sequentialPhaseRenderingPdf: "rendering PDF page",
+          sequentialPhasePreparingImage: "preparing image",
+          sequentialPhaseNormalizingSize: "normalizing size",
+          sequentialPhaseCroppingDocument: "cropping document",
+          sequentialPhaseDeskewingDocument: "deskewing / rotating",
+          sequentialPhaseDetectingProfile: "detecting document profile",
+          sequentialPhaseCleanupDocument: "cleaning document",
+          sequentialPhaseGrayscaleDocument: "converting to grayscale",
+          sequentialPhaseVisualCleanup: "building visual output",
+          sequentialPhaseDenoiseDocument: "light denoise",
+          sequentialPhaseEnhanceDocument: "contrast / sharpen",
+          sequentialPhaseScoringCandidates: "scoring OCR candidates",
+          sequentialCompletedDetail: "Completed {name}: {sentPages}/{pageCount} pages sent.",
+          sequentialFailedDetail:
+            "Stopped at page {currentPage}/{pageCount} for {name}: {message}",
+          sequentialFileSuccessDetail:
+            "Completed: {successCount}/{outboundFileCount} outbound deliveries succeeded.",
+          sequentialFileErrorDetail: "Failed: {message}",
+          requestTimedOut: "Request timed out.",
+          invalidServerResponse: "Invalid server response from the server.",
+          sequentialAllSuccessMessage: "All files were processed one by one successfully.",
+          sequentialPartialFailureMessage: "Some files failed during sequential processing.",
+          fileLabel: "File {index}",
+          historyKicker: "Upload History",
+          historyTitle: "Recent Documents",
+          historyEmpty: "No uploaded documents yet.",
+          historyLoadFailed: "Could not load upload history.",
+          clearHistoryButton: "Clear History",
+          clearHistoryFailed: "Could not clear upload history."
+        }
+      };
+
+      const form = document.getElementById("uploadForm");
+      const fileInput = document.getElementById("fileInput");
+      const fileList = document.getElementById("fileList");
+      const senderNameInput = document.getElementById("senderNameInput");
+      const senderEmail = document.getElementById("senderEmail");
+      const noteInput = document.getElementById("noteInput");
+      const checkButton = document.getElementById("checkButton");
+      const exportButton = document.getElementById("exportButton");
+      const checkResponseCard = document.getElementById("checkResponseCard");
+      const checkResponseBadge = document.getElementById("checkResponseBadge");
+      const checkResponseBody = document.getElementById("checkResponseBody");
+      const submitButton = document.getElementById("submitButton");
+      const uploadProgressCard = document.getElementById("uploadProgressCard");
+      const uploadProgressPercent = document.getElementById("uploadProgressPercent");
+      const uploadProgressFill = document.getElementById("uploadProgressFill");
+      const uploadProgressMeta = document.getElementById("uploadProgressMeta");
+      const dropzone = document.getElementById("dropzone");
+      const statusPanel = document.getElementById("statusPanel");
+      const statusBadge = document.getElementById("statusBadge");
+      const statusMessage = document.getElementById("statusMessage");
+      const statusNumbers = document.getElementById("statusNumbers");
+      const statusMeta = document.getElementById("statusMeta");
+      const statusTimeline = document.getElementById("statusTimeline");
+      const chatButton = document.getElementById("chatButton");
+      const settingsButton = document.getElementById("settingsButton");
+      const chatModal = document.getElementById("chatModal");
+      const closeChatButton = document.getElementById("closeChatButton");
+      const chatForm = document.getElementById("chatForm");
+      const chatNodeSelect = document.getElementById("chatNodeSelect");
+      const chatInput = document.getElementById("chatInput");
+      const chatMessage = document.getElementById("chatMessage");
+      const chatResponseCard = document.getElementById("chatResponseCard");
+      const chatResponseBadge = document.getElementById("chatResponseBadge");
+      const chatResponseBody = document.getElementById("chatResponseBody");
+      const runChatCommandButton = document.getElementById("runChatCommandButton");
+      const exportPreviewModal = document.getElementById("exportPreviewModal");
+      const closeExportModalButton = document.getElementById("closeExportModalButton");
+      const exportModalMessage = document.getElementById("exportModalMessage");
+      const exportModalResponseCard = document.getElementById("exportModalResponseCard");
+      const exportModalResponseTitle = document.getElementById("exportModalResponseTitle");
+      const exportModalResponseBadge = document.getElementById("exportModalResponseBadge");
+      const exportModalResponseBody = document.getElementById("exportModalResponseBody");
+      const editExportButton = document.getElementById("editExportButton");
+      const cancelEditExportButton = document.getElementById("cancelEditExportButton");
+      const exportAndClearConfirmButton = document.getElementById("exportAndClearConfirmButton");
+      const settingsModal = document.getElementById("settingsModal");
+      const closeSettingsButton = document.getElementById("closeSettingsButton");
+      const settingsForm = document.getElementById("settingsForm");
+      const settingsWebhookUrl = document.getElementById("settingsWebhookUrl");
+      const settingsActionWebhookUrl = document.getElementById("settingsActionWebhookUrl");
+      const settingsCommandWebhookUrl = document.getElementById("settingsCommandWebhookUrl");
+      const settingsMessage = document.getElementById("settingsMessage");
+      const saveSettingsButton = document.getElementById("saveSettingsButton");
+      const currentWebhookUrl = document.getElementById("currentWebhookUrl");
+      const currentWebhookStatus = document.getElementById("currentWebhookStatus");
+      const currentActionWebhookUrl = document.getElementById("currentActionWebhookUrl");
+      const currentActionWebhookStatus = document.getElementById("currentActionWebhookStatus");
+      const currentCommandWebhookUrl = document.getElementById("currentCommandWebhookUrl");
+      const currentCommandWebhookStatus = document.getElementById("currentCommandWebhookStatus");
+      const appVersionText = document.getElementById("appVersionText");
+      const currentAppVersionValue = document.getElementById("currentAppVersionValue");
+      const currentVersionStatus = document.getElementById("currentVersionStatus");
+      const lightThemeButton = document.getElementById("lightThemeButton");
+      const darkThemeButton = document.getElementById("darkThemeButton");
+      const thaiLanguageButton = document.getElementById("thaiLanguageButton");
+      const englishLanguageButton = document.getElementById("englishLanguageButton");
+      const historyList = document.getElementById("historyList");
+      const clearHistoryButton = document.getElementById("clearHistoryButton");
+
+      let selectedFiles = [];
+      let currentTheme = "light";
+      let currentLanguage = "th";
+      let currentSettingsPayload = null;
+      let currentAppVersion = "";
+      let uploadHistoryItems = [];
+      let statusState = { type: "idle" };
+      let chatMessageState = {
+        state: "idle",
+        key: "chatMessageIdle",
+        raw: null
+      };
+      let chatResponseState = {
+        type: "idle"
+      };
+      let chatNodeOptions = [];
+      let chatNodeItems = [];
+      let chatNodesLoading = false;
+      let actionCardStates = {
+        check: { type: "idle" },
+        export: { type: "idle" }
+      };
+      let exportPreviewState = {
+        type: "idle"
+      };
+      let settingsMessageState = {
+        state: "idle",
+        key: "settingsLoadingCurrent",
+        raw: null
+      };
+
+      function t(key, vars = {}) {
+        const dictionary = TRANSLATIONS[currentLanguage] || TRANSLATIONS.th;
+        const fallback = TRANSLATIONS.en[key] || key;
+        const template = dictionary[key] || fallback;
+        return template.replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ""));
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (char) => {
+          const map = {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+          };
+          return map[char];
+        });
+      }
+
+      function normalizeHistoryEmail(value) {
+        return String(value || "").trim().toLowerCase();
+      }
+
+      function formatTimestamp() {
+        const locale = currentLanguage === "th" ? "th-TH" : "en-US";
+        return new Date().toLocaleString(locale, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit"
+        });
+      }
+
+      function shortenUrl(value) {
+        if (!value) {
+          return t("notConfigured");
+        }
+        return value.length > 64 ? `${value.slice(0, 61)}...` : value;
+      }
+
+      function setText(id, value) {
+        const element = document.getElementById(id);
+        if (element) {
+          element.textContent = value;
+        }
+      }
+
+      function applyTheme(theme) {
+        currentTheme = theme === "dark" ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", currentTheme);
+        localStorage.setItem(THEME_STORAGE_KEY, currentTheme);
+        lightThemeButton.classList.toggle("active", currentTheme === "light");
+        darkThemeButton.classList.toggle("active", currentTheme === "dark");
+        lightThemeButton.setAttribute("aria-pressed", String(currentTheme === "light"));
+        darkThemeButton.setAttribute("aria-pressed", String(currentTheme === "dark"));
+      }
+
+      function applyLanguage(language) {
+        currentLanguage = language === "en" ? "en" : "th";
+        document.documentElement.lang = currentLanguage;
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
+        thaiLanguageButton.classList.toggle("active", currentLanguage === "th");
+        englishLanguageButton.classList.toggle("active", currentLanguage === "en");
+        thaiLanguageButton.setAttribute("aria-pressed", String(currentLanguage === "th"));
+        englishLanguageButton.setAttribute("aria-pressed", String(currentLanguage === "en"));
+        renderStaticText();
+        renderSettingsStatus();
+        renderSettingsMessage();
+        renderFiles(selectedFiles);
+        renderStatus();
+        renderActionCard("check");
+        renderActionCard("export");
+      }
+
+      function initializeTheme() {
+        const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+        applyTheme(savedTheme || "light");
+      }
+
+      function initializeLanguage() {
+        const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+        applyLanguage(savedLanguage || "th");
+      }
+
+      function initializeSenderFields() {
+        senderNameInput.value = localStorage.getItem(SENDER_NAME_STORAGE_KEY) || "";
+        senderEmail.value = localStorage.getItem(SENDER_EMAIL_STORAGE_KEY) || "";
+      }
+
+      function persistSenderFields() {
+        localStorage.setItem(SENDER_NAME_STORAGE_KEY, senderNameInput.value);
+        localStorage.setItem(SENDER_EMAIL_STORAGE_KEY, senderEmail.value);
+      }
+
+      function renderStaticText() {
+        document.title = t("documentTitle");
+        setText("eyebrowText", t("eyebrow"));
+        chatButton.textContent = t("chatButton");
+        settingsButton.textContent = t("settingsButton");
+        setText("introText", t("intro"));
+        setText("senderNameLabel", t("senderNameLabel"));
+        senderNameInput.placeholder = t("senderNamePlaceholder");
+        setText("senderEmailLabel", t("senderEmailLabel"));
+        senderEmail.placeholder = t("senderEmailPlaceholder");
+        checkButton.textContent = t("checkButton");
+        exportButton.textContent = t("exportButton");
+        setText("checkResponseTitle", t("checkResponseTitle"));
+        setText("noteLabel", t("noteLabel"));
+        noteInput.placeholder = t("notePlaceholder");
+        setText("dropzoneTitle", t("dropzoneTitle"));
+        setText("dropzoneHint", t("dropzoneHint"));
+        submitButton.textContent = t("uploadButton");
+        setText("uploadProgressLabel", t("uploadProgressLabel"));
+        setText("statusKicker", t("statusKicker"));
+        setText("statusTitle", t("statusTitle"));
+        setText("statusMessageLabel", t("statusMessageLabel"));
+        setText("statusResultLabel", t("statusResultLabel"));
+        setText("versionLabel", t("versionLabel"));
+        setText("actionPanelKicker", t("actionPanelKicker"));
+        setText("actionPanelTitle", t("actionPanelTitle"));
+        setText("historyKicker", t("historyKicker"));
+        setText("historyTitle", t("historyTitle"));
+        clearHistoryButton.textContent = t("clearHistoryButton");
+        setText("settingsKicker", t("settingsKicker"));
+        setText("settingsTitle", t("settingsTitle"));
+        closeSettingsButton.textContent = t("closeButton");
+        setText("chatKicker", t("chatKicker"));
+        setText("chatTitle", t("chatTitle"));
+        closeChatButton.textContent = t("closeButton");
+        setText("exportModalKicker", t("exportModalKicker"));
+        setText("exportModalTitle", t("exportModalTitle"));
+        setText("exportModalResponseTitle", t("exportModalResponseTitle"));
+        closeExportModalButton.textContent = t("closeButton");
+        cancelEditExportButton.textContent = t("exportModalCancelEditButton");
+        exportAndClearConfirmButton.textContent = t("exportAndClearConfirmButton");
+        setText("chatNodeLabel", t("chatNodeLabel"));
+        setText("chatInputLabel", t("chatInputLabel"));
+        chatInput.placeholder = t("chatInputPlaceholder");
+        setText("chatResponseTitle", t("chatResponseTitle"));
+        runChatCommandButton.textContent = t("chatRunButton");
+        setText("settingsWebhookStatusLabel", t("settingsWebhookStatusLabel"));
+        setText("settingsActionWebhookStatusLabel", t("settingsActionWebhookStatusLabel"));
+        setText("settingsCommandWebhookStatusLabel", t("settingsCommandWebhookStatusLabel"));
+        setText("settingsVersionStatusLabel", t("settingsVersionStatusLabel"));
+        setText("themeSectionLabel", t("themeLabel"));
+        lightThemeButton.textContent = t("themeLight");
+        darkThemeButton.textContent = t("themeDark");
+        setText("themeHelperText", t("themeHelper"));
+        setText("languageSectionLabel", t("languageLabel"));
+        thaiLanguageButton.textContent = t("languageThai");
+        englishLanguageButton.textContent = t("languageEnglish");
+        setText("languageHelperText", t("languageHelper"));
+        setText("settingsWebhookInputLabel", t("settingsWebhookInputLabel"));
+        settingsWebhookUrl.placeholder = t("settingsWebhookPlaceholder");
+        setText("settingsActionWebhookInputLabel", t("settingsActionWebhookInputLabel"));
+        settingsActionWebhookUrl.placeholder = t("settingsActionWebhookPlaceholder");
+        setText("settingsCommandWebhookInputLabel", t("settingsCommandWebhookInputLabel"));
+        settingsCommandWebhookUrl.placeholder = t("settingsCommandWebhookPlaceholder");
+        saveSettingsButton.textContent = t("saveSettingsButton");
+        renderChatMessage();
+        renderChatNodeOptions();
+        renderChatResponse();
+        renderExportPreviewModal();
+        renderUploadProgressBar();
+        renderUploadHistory();
+        renderVersionInfo();
+      }
+
+      function formatVersionText(version) {
+        const normalized = String(version || "").trim();
+        return normalized ? `v${normalized}` : "v...";
+      }
+
+      function renderVersionInfo() {
+        const versionText = formatVersionText(currentSettingsPayload?.appVersion || currentAppVersion);
+        appVersionText.textContent = versionText;
+        currentAppVersionValue.textContent = versionText;
+        currentVersionStatus.textContent = t("versionReady");
+      }
+
+      function renderSettingsStatus() {
+        if (!currentSettingsPayload) {
+          currentWebhookStatus.className = "preview-status idle";
+          currentWebhookStatus.textContent = t("statusChecking");
+          currentWebhookUrl.textContent = t("loading");
+          currentActionWebhookStatus.className = "preview-status idle";
+          currentActionWebhookStatus.textContent = t("statusChecking");
+          currentActionWebhookUrl.textContent = t("loading");
+          currentCommandWebhookStatus.className = "preview-status idle";
+          currentCommandWebhookStatus.textContent = t("statusChecking");
+          currentCommandWebhookUrl.textContent = t("loading");
+          currentVersionStatus.className = "preview-status idle";
+          currentVersionStatus.textContent = t("loading");
+          currentAppVersionValue.textContent = formatVersionText(currentAppVersion);
+          appVersionText.textContent = formatVersionText(currentAppVersion);
+          return;
+        }
+
+        currentAppVersion = currentSettingsPayload.appVersion || currentAppVersion;
+        currentWebhookUrl.textContent = shortenUrl(currentSettingsPayload.webhookUrl);
+        currentWebhookUrl.title = currentSettingsPayload.webhookUrl || "";
+        currentActionWebhookUrl.textContent = shortenUrl(currentSettingsPayload.actionWebhookUrl);
+        currentActionWebhookUrl.title = currentSettingsPayload.actionWebhookUrl || "";
+        currentCommandWebhookUrl.textContent = shortenUrl(currentSettingsPayload.commandWebhookUrl);
+        currentCommandWebhookUrl.title = currentSettingsPayload.commandWebhookUrl || "";
+        currentWebhookStatus.className = `preview-status ${
+          currentSettingsPayload.webhookConfigured ? "success" : "error"
+        }`;
+        currentWebhookStatus.textContent = currentSettingsPayload.webhookConfigured
+          ? t("statusConfigured")
+          : t("statusNotConfigured");
+        currentActionWebhookStatus.className = `preview-status ${
+          currentSettingsPayload.actionWebhookConfigured ? "success" : "error"
+        }`;
+        currentActionWebhookStatus.textContent = currentSettingsPayload.actionWebhookConfigured
+          ? t("statusConfigured")
+          : t("statusNotConfigured");
+        currentCommandWebhookStatus.className = `preview-status ${
+          currentSettingsPayload.commandWebhookConfigured ? "success" : "error"
+        }`;
+        currentCommandWebhookStatus.textContent = currentSettingsPayload.commandWebhookConfigured
+          ? t("statusConfigured")
+          : t("statusNotConfigured");
+        currentVersionStatus.className = "preview-status success";
+        renderVersionInfo();
+      }
+
+      function setSettingsMessageState({ state = "idle", key = null, raw = null }) {
+        settingsMessageState = { state, key, raw };
+        renderSettingsMessage();
+      }
+
+      function renderSettingsMessage() {
+        settingsMessage.className = `settings-message ${settingsMessageState.state}`;
+        settingsMessage.textContent = settingsMessageState.raw || t(settingsMessageState.key);
+      }
+
+      function setChatMessageState({ state = "idle", key = null, raw = null }) {
+        chatMessageState = { state, key, raw };
+        renderChatMessage();
+      }
+
+      function renderChatMessage() {
+        chatMessage.className = `settings-message ${chatMessageState.state}`;
+        chatMessage.textContent = chatMessageState.raw || t(chatMessageState.key);
+      }
+
+      function renderChatNodeOptions() {
+        const selectedValue = chatNodeSelect.value;
+
+        if (chatNodesLoading) {
+          chatNodeSelect.innerHTML = `<option value="">${escapeHtml(t("chatNodeLoading"))}</option>`;
+          chatNodeSelect.disabled = true;
+          return;
+        }
+
+        if (!chatNodeOptions.length) {
+          chatNodeSelect.innerHTML = `<option value="">${escapeHtml(t("chatNodePlaceholder"))}</option>`;
+          chatNodeSelect.disabled = false;
+          return;
+        }
+
+        chatNodeSelect.innerHTML = [
+          `<option value="">${escapeHtml(t("chatNodePlaceholder"))}</option>`,
+          ...chatNodeOptions.map(
+            (node) => `<option value="${escapeHtml(node)}">${escapeHtml(node)}</option>`
+          )
+        ].join("");
+
+        if (chatNodeOptions.includes(selectedValue)) {
+          chatNodeSelect.value = selectedValue;
+        } else {
+          chatNodeSelect.value = chatNodeOptions[0];
+        }
+
+        chatNodeSelect.disabled = false;
+      }
+
+      function renderChatResponse() {
+        if (!chatResponseState || chatResponseState.type === "idle") {
+          chatResponseCard.className = "action-response-card";
+          chatResponseBadge.className = "mini-badge idle";
+          chatResponseBadge.textContent = t("notUsedYet");
+          chatResponseBody.innerHTML = escapeHtml(t("chatResponseIdle"));
+          return;
+        }
+
+        if (chatResponseState.type === "loading") {
+          chatResponseCard.className = "action-response-card loading";
+          chatResponseBadge.className = "mini-badge loading";
+          chatResponseBadge.textContent = t("sendingCommand");
+          chatResponseBody.innerHTML = `
+            <div class="response-meta">
+              <span>${escapeHtml(t("chatNodeMetaLabel"))}: ${escapeHtml(
+                chatResponseState.node || "-"
+              )}</span>
+              <span>${escapeHtml(t("chatCommandLabel"))}: ${escapeHtml(
+                chatResponseState.command || "-"
+              )}</span>
+            </div>
+            <div class="response-empty">${escapeHtml(t("chatResponseSending"))}</div>
+          `;
+          return;
+        }
+
+        if (chatResponseState.type === "error") {
+          chatResponseCard.className = "action-response-card error";
+          chatResponseBadge.className = "mini-badge error";
+          chatResponseBadge.textContent = t("failedShort");
+          chatResponseBody.innerHTML = `
+            <div class="response-meta">
+              <span>${escapeHtml(t("chatNodeMetaLabel"))}: ${escapeHtml(
+                chatResponseState.node || "-"
+              )}</span>
+              <span>${escapeHtml(t("chatCommandLabel"))}: ${escapeHtml(
+                chatResponseState.command || "-"
+              )}</span>
+            </div>
+            <div class="response-plain">${escapeHtml(chatResponseState.message || t("chatFailed"))}</div>
+          `;
+          return;
+        }
+
+        const result = chatResponseState.result || {};
+        const isSuccess = Boolean(chatResponseState.ok);
+        chatResponseCard.className = `action-response-card ${isSuccess ? "success" : "error"}`;
+        chatResponseBadge.className = `mini-badge ${isSuccess ? "success" : "error"}`;
+        chatResponseBadge.textContent = isSuccess ? t("successShort") : t("failedShort");
+        chatResponseBody.innerHTML = `
+          <div class="response-meta">
+            <span>${escapeHtml(t("chatNodeMetaLabel"))}: ${escapeHtml(result.node || "-")}</span>
+            <span>${escapeHtml(t("chatCommandLabel"))}: ${escapeHtml(result.command || "-")}</span>
+            <span>${escapeHtml(t("webhookMetaLabel"))}: ${escapeHtml(
+              String(result.webhookStatus || "-")
+            )}</span>
+          </div>
+          <div class="response-plain">${escapeHtml(result.message || (isSuccess ? t("chatSuccess") : t("chatFailed")))}</div>
+          ${renderWebhookBody(result.webhookBody)}
+        `;
+      }
+
+      function syncModalOpenState() {
+        const isAnyModalOpen =
+          !settingsModal.classList.contains("hidden") ||
+          !chatModal.classList.contains("hidden") ||
+          !exportPreviewModal.classList.contains("hidden");
+        document.body.classList.toggle("modal-open", isAnyModalOpen);
+      }
+
+      async function loadSettings() {
+        setSettingsMessageState({ state: "idle", key: "settingsLoadingCurrent" });
+
+        try {
+          const response = await fetch("/settings/webhooks");
+          const result = await response.json();
+
+          if (!response.ok || !result.ok) {
+            throw new Error(result.message || t("failedLoadSettings"));
+          }
+
+          currentSettingsPayload = result;
+          currentAppVersion = result.appVersion || currentAppVersion;
+          settingsWebhookUrl.value = result.webhookUrl || "";
+          settingsActionWebhookUrl.value = result.actionWebhookUrl || "";
+          settingsCommandWebhookUrl.value = result.commandWebhookUrl || "";
+          renderSettingsStatus();
+          setSettingsMessageState({ state: "idle", key: "settingsReady" });
+        } catch (error) {
+          setSettingsMessageState({ state: "error", raw: error.message });
+        }
+      }
+
+      async function loadChatNodeOptions() {
+        chatNodesLoading = true;
+        renderChatNodeOptions();
+
+        try {
+          const response = await fetch("/web-command/options");
+          const result = await response.json();
+
+          if (!response.ok || !result.ok) {
+            throw new Error(result.message || t("chatNodeLoadFailed"));
+          }
+
+          chatNodeItems = Array.isArray(result.items) ? result.items : [];
+          chatNodeOptions = Array.isArray(result.nodes) ? result.nodes.filter(Boolean) : [];
+          renderChatNodeOptions();
+
+          if (!chatNodeOptions.length) {
+            setChatMessageState({ state: "error", key: "chatNodeLoadFailed" });
+            return;
+          }
+
+          setChatMessageState({ state: "idle", key: "chatMessageIdle" });
+        } catch (error) {
+          chatNodeOptions = [];
+          chatNodeItems = [];
+          setChatMessageState({ state: "error", raw: error.message || t("chatNodeLoadFailed") });
+          renderChatNodeOptions();
+        } finally {
+          chatNodesLoading = false;
+          renderChatNodeOptions();
+        }
+      }
+
+      async function loadUploadHistory() {
+        try {
+          const response = await fetch("/upload-history");
+          const result = await response.json();
+
+          if (!response.ok || !result.ok) {
+            throw new Error(result.message || t("historyLoadFailed"));
+          }
+
+          uploadHistoryItems = Array.isArray(result.items) ? result.items : [];
+        } catch (error) {
+          uploadHistoryItems = [];
+        }
+
+        renderUploadHistory();
+      }
+
+      async function clearUploadHistory(options = {}) {
+        const { silent = false } = options;
+        clearHistoryButton.disabled = true;
+        const email = normalizeHistoryEmail(senderEmail.value);
+
+        try {
+          const response = await fetch("/upload-history/clear", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              email
+            })
+          });
+          const result = await response.json();
+
+          if (!response.ok || !result.ok) {
+            throw new Error(result.message || t("clearHistoryFailed"));
+          }
+
+          uploadHistoryItems = Array.isArray(result.items) ? result.items : [];
+          renderUploadHistory();
+          return true;
+        } catch (error) {
+          if (!silent) {
+            statusState = {
+              type: "result",
+              isError: true,
+              result: {
+                ok: false,
+                message: error.message
+              }
+            };
+            renderStatus();
+          }
+          return false;
+        } finally {
+          clearHistoryButton.disabled = false;
+        }
+      }
+
+      function openSettingsModal() {
+        settingsModal.classList.remove("hidden");
+        syncModalOpenState();
+        applyTheme(currentTheme);
+        applyLanguage(currentLanguage);
+        loadSettings();
+      }
+
+      function closeSettingsModal() {
+        settingsModal.classList.add("hidden");
+        syncModalOpenState();
+      }
+
+      function openChatModal() {
+        chatModal.classList.remove("hidden");
+        syncModalOpenState();
+        renderChatMessage();
+        void loadChatNodeOptions();
+        renderChatResponse();
+        chatInput.focus();
+      }
+
+      function closeChatModal() {
+        chatModal.classList.add("hidden");
+        syncModalOpenState();
+      }
+
+      function openExportPreviewModal() {
+        exportPreviewModal.classList.remove("hidden");
+        syncModalOpenState();
+        renderExportPreviewModal();
+      }
+
+      function closeExportPreviewModal() {
+        exportPreviewModal.classList.add("hidden");
+        syncModalOpenState();
+      }
+
+      function renderFiles(files) {
+        if (!files.length) {
+          fileList.className = "file-list empty";
+          fileList.textContent = t("fileListEmpty");
+          return;
+        }
+
+        const items = Array.from(files).map(
+          (file, index) => `
+            <div class="file-chip">
+              <div class="file-chip-main">
+                <strong>${escapeHtml(file.name)}</strong>
+                <span>${(file.size / 1024 / 1024).toFixed(2)} MB</span>
+              </div>
+              <button
+                type="button"
+                class="file-remove-button"
+                data-file-index="${index}"
+                aria-label="${escapeHtml(t("removeFileAria", { name: file.name }))}"
+              >
+                ${escapeHtml(t("removeButton"))}
+              </button>
+            </div>
+          `
+        );
+
+        fileList.className = "file-list";
+        fileList.innerHTML = items.join("");
+      }
+
+      function renderUploadHistory() {
+        const email = normalizeHistoryEmail(senderEmail.value);
+        const visibleItems = uploadHistoryItems.filter((item) => {
+          if (!item || typeof item !== "object") {
+            return false;
+          }
+
+          return email ? normalizeHistoryEmail(item.email) === email : false;
+        });
+
+        if (!visibleItems.length) {
+          historyList.className = "history-list empty";
+          historyList.textContent = t("historyEmpty");
+          return;
+        }
+
+        historyList.className = "history-list";
+        historyList.innerHTML = visibleItems
+          .map(
+            (item, index) => `
+              <article class="history-item">
+                <span class="history-index">${escapeHtml(String(index + 1).padStart(2, "0"))}</span>
+                <strong>${escapeHtml(item.name || "")}</strong>
+              </article>
+            `
+          )
+          .join("");
+      }
+
+      function syncFileInput() {
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach((file) => {
+          dataTransfer.items.add(file);
+        });
+        fileInput.files = dataTransfer.files;
+      }
+
+      function getSelectedFileKey(file) {
+        return [file?.name || "", file?.size || 0, file?.lastModified || 0, file?.type || ""].join("::");
+      }
+
+      function mergeSelectedFiles(nextFiles) {
+        const merged = [...selectedFiles];
+        const seen = new Set(merged.map(getSelectedFileKey));
+
+        nextFiles.forEach((file) => {
+          const key = getSelectedFileKey(file);
+          if (!seen.has(key)) {
+            seen.add(key);
+            merged.push(file);
+          }
+        });
+
+        selectedFiles = merged;
+        syncFileInput();
+        renderFiles(selectedFiles);
+      }
+
+      function setPanelState(state) {
+        statusPanel.className = `status-panel is-${state}`;
+        statusBadge.className = `status-badge ${state}`;
+      }
+
+      function renderTimeline(items) {
+        statusTimeline.innerHTML = items.join("");
+      }
+
+      function formatWebhookValue(value) {
+        if (value === null || value === undefined || value === "") {
+          return '<span class="response-empty-inline">-</span>';
+        }
+
+        if (typeof value === "object") {
+          return `<pre class="response-json">${escapeHtml(
+            JSON.stringify(value, null, 2)
+          )}</pre>`;
+        }
+
+        return `<span>${escapeHtml(String(value))}</span>`;
+      }
+
+      function deepCloneValue(value) {
+        if (value === null || value === undefined) {
+          return value;
+        }
+
+        if (typeof structuredClone === "function") {
+          return structuredClone(value);
+        }
+
+        return JSON.parse(JSON.stringify(value));
+      }
+
+      function canEditWebhookBody(body) {
+        if (Array.isArray(body)) {
+          return body.every((item) => item && typeof item === "object" && !Array.isArray(item));
+        }
+
+        return Boolean(body && typeof body === "object");
+      }
+
+      function coerceEditedValue(rawValue, originalValue) {
+        const value = String(rawValue ?? "");
+
+        if (typeof originalValue === "number") {
+          const numericValue = Number(value);
+          return Number.isFinite(numericValue) ? numericValue : originalValue;
+        }
+
+        if (typeof originalValue === "boolean") {
+          return value.trim().toLowerCase() === "true";
+        }
+
+        if (originalValue === null) {
+          return value === "" ? null : value;
+        }
+
+        return value;
+      }
+
+      function updateEditableExportValue(rowIndex, field, rawValue) {
+        if (!exportPreviewState || !exportPreviewState.editedBody) {
+          return;
+        }
+
+        if (Array.isArray(exportPreviewState.editedBody)) {
+          const targetRow = exportPreviewState.editedBody[rowIndex];
+          const originalRow =
+            Array.isArray(exportPreviewState.originalBody) ? exportPreviewState.originalBody[rowIndex] : null;
+          if (!targetRow || typeof targetRow !== "object") {
+            return;
+          }
+
+          const originalValue = originalRow && typeof originalRow === "object" ? originalRow[field] : "";
+          targetRow[field] = coerceEditedValue(rawValue, originalValue);
+          return;
+        }
+
+        if (exportPreviewState.editedBody && typeof exportPreviewState.editedBody === "object") {
+          const originalValue =
+            exportPreviewState.originalBody && typeof exportPreviewState.originalBody === "object"
+              ? exportPreviewState.originalBody[field]
+              : "";
+          exportPreviewState.editedBody[field] = coerceEditedValue(rawValue, originalValue);
+        }
+      }
+
+      function removeEditableExportRow(rowIndex) {
+        if (!exportPreviewState || !Array.isArray(exportPreviewState.editedBody)) {
+          return null;
+        }
+
+        const safeIndex = Number(rowIndex);
+        if (Number.isNaN(safeIndex) || safeIndex < 0 || safeIndex >= exportPreviewState.editedBody.length) {
+          return null;
+        }
+
+        return exportPreviewState.editedBody.splice(safeIndex, 1)[0] || null;
+      }
+
+      function renderWebhookBody(body) {
+        if (body === null || body === undefined || body === "") {
+          return `<div class="response-empty">${escapeHtml(t("noResponseBody"))}</div>`;
+        }
+
+        if (Array.isArray(body)) {
+          if (!body.length) {
+            return `<div class="response-empty">${escapeHtml(t("responseEmptyArray"))}</div>`;
+          }
+
+          return `
+            <div class="response-list">
+              ${body
+                .map(
+                  (item, index) => `
+                    <div class="response-row">
+                      <strong>${escapeHtml(t("responseItemLabel", { index: index + 1 }))}</strong>
+                      ${formatWebhookValue(item)}
+                    </div>
+                  `
+                )
+                .join("")}
+            </div>
+          `;
+        }
+
+        if (typeof body === "object") {
+          const entries = Object.entries(body);
+
+          if (!entries.length) {
+            return `<div class="response-empty">${escapeHtml(t("responseEmptyObject"))}</div>`;
+          }
+
+          return `
+            <div class="response-list">
+              ${entries
+                .map(
+                  ([key, value]) => `
+                    <div class="response-row">
+                      <strong>${escapeHtml(key)}</strong>
+                      ${formatWebhookValue(value)}
+                    </div>
+                  `
+                )
+                .join("")}
+            </div>
+          `;
+        }
+
+        return `<div class="response-plain">${escapeHtml(String(body))}</div>`;
+      }
+
+      function isReadOnlyExportField(field) {
+        return ["id", "createdAt", "updatedAt"].includes(String(field || "").trim());
+      }
+
+      function getExportTableColumnClass(field) {
+        const normalized = String(field || "").trim().toLowerCase();
+        if (normalized === "id") {
+          return "col-id";
+        }
+        if (normalized === "description") {
+          return "col-description";
+        }
+        if (normalized === "company") {
+          return "col-company";
+        }
+        if (normalized === "invoice_no") {
+          return "col-invoice";
+        }
+        if (normalized === "document_type") {
+          return "col-document-type";
+        }
+        if (normalized === "email") {
+          return "col-email";
+        }
+        if (normalized === "qty" || normalized === "price") {
+          return "col-number";
+        }
+        if (["id", "createdat", "updatedat"].includes(normalized)) {
+          return "col-meta";
+        }
+        return "col-default";
+      }
+
+      function orderExportColumns(columns) {
+        const list = Array.isArray(columns) ? [...columns] : [];
+        const idIndex = list.findIndex((column) => String(column || "").trim().toLowerCase() === "id");
+        if (idIndex > 0) {
+          const [idColumn] = list.splice(idIndex, 1);
+          list.unshift(idColumn);
+        }
+        return list;
+      }
+
+      function compareExportIdValues(left, right, direction = "asc") {
+        const normalize = (value) => {
+          if (value === null || value === undefined || value === "") {
+            return null;
+          }
+          const numeric = Number(value);
+          if (Number.isFinite(numeric)) {
+            return { kind: "number", value: numeric };
+          }
+          return { kind: "string", value: String(value).toLowerCase() };
+        };
+
+        const leftValue = normalize(left);
+        const rightValue = normalize(right);
+        const multiplier = direction === "desc" ? -1 : 1;
+
+        if (!leftValue && !rightValue) {
+          return 0;
+        }
+        if (!leftValue) {
+          return 1;
+        }
+        if (!rightValue) {
+          return -1;
+        }
+        if (leftValue.kind === "number" && rightValue.kind === "number") {
+          return (leftValue.value - rightValue.value) * multiplier;
+        }
+        return leftValue.value.localeCompare(rightValue.value, undefined, { numeric: true }) * multiplier;
+      }
+
+      function sortExportPreviewRowsInState(direction = "asc") {
+        if (!exportPreviewState || exportPreviewState.type !== "result") {
+          return;
+        }
+
+        const sortRows = (rows) => {
+          if (!Array.isArray(rows) || !rows.every((item) => item && typeof item === "object" && !Array.isArray(item))) {
+            return rows;
+          }
+          return [...rows].sort((left, right) => compareExportIdValues(left?.id, right?.id, direction));
+        };
+
+        const nextWebhookBody = sortRows(exportPreviewState.result?.webhookBody);
+        const nextOriginalBody = sortRows(exportPreviewState.originalBody);
+        const nextEditedBody = sortRows(exportPreviewState.editedBody);
+
+        exportPreviewState = {
+          ...exportPreviewState,
+          sortDirection: direction,
+          originalBody: nextOriginalBody,
+          editedBody: nextEditedBody,
+          result: {
+            ...exportPreviewState.result,
+            webhookBody: nextWebhookBody
+          }
+        };
+      }
+
+      function renderWebhookTable(body, options = {}) {
+        const { editable = false } = options;
+        if (body === null || body === undefined || body === "") {
+          return `<div class="response-empty">${escapeHtml(t("exportModalTableEmpty"))}</div>`;
+        }
+
+        if (Array.isArray(body)) {
+          if (!body.length) {
+            return `<div class="response-empty">${escapeHtml(t("exportModalTableEmpty"))}</div>`;
+          }
+
+          const allObjects = body.every((item) => item && typeof item === "object" && !Array.isArray(item));
+          if (allObjects) {
+            const columns = orderExportColumns([...new Set(body.flatMap((item) => Object.keys(item)))]);
+            return `
+              <div class="response-table-wrap response-table-wrap-export">
+                <table class="response-table response-table-export">
+                  <thead>
+                    <tr>${columns
+                      .map((column) =>
+                        String(column || "").trim().toLowerCase() === "id"
+                          ? `<th class="${getExportTableColumnClass(column)}"><button type="button" class="table-sort-button" data-sort-field="id">${escapeHtml(
+                              column
+                            )} ${exportPreviewState?.sortDirection === "desc" ? "↓" : "↑"}</button></th>`
+                          : `<th class="${getExportTableColumnClass(column)}">${escapeHtml(column)}</th>`
+                      )
+                      .join("")}</tr>
+                  </thead>
+                  <tbody>
+                    ${body
+                      .map(
+                        (item, rowIndex) => `
+                          <tr>
+                            ${columns
+                              .map((column) => {
+                                if (!editable) {
+                                  return `<td class="${getExportTableColumnClass(column)}">${formatWebhookValue(item[column])}</td>`;
+                                }
+
+                                return `<td class="${getExportTableColumnClass(column)}">
+                                  <textarea
+                                    class="table-edit-input"
+                                    data-row-index="${rowIndex}"
+                                    data-field="${escapeHtml(column)}"
+                                  >${escapeHtml(String(item[column] ?? ""))}</textarea>
+                                </td>`;
+                              })
+                              .join("")}
+                          </tr>
+                        `
+                      )
+                      .join("")}
+                  </tbody>
+                </table>
+              </div>
+            `;
+          }
+
+          return `
+            <div class="response-table-wrap">
+              <table class="response-table">
+                <thead>
+                  <tr>
+                    <th>${escapeHtml(t("responseItemLabel", { index: "#" }))}</th>
+                    <th>Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${body
+                    .map(
+                      (item, index) => `
+                        <tr>
+                          <td>${escapeHtml(String(index + 1))}</td>
+                          <td>${formatWebhookValue(item)}</td>
+                        </tr>
+                      `
+                    )
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }
+
+        if (typeof body === "object") {
+          const entries = Object.entries(body);
+          if (!entries.length) {
+            return `<div class="response-empty">${escapeHtml(t("exportModalTableEmpty"))}</div>`;
+          }
+
+          return `
+            <div class="response-table-wrap">
+              <table class="response-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${entries
+                    .map(
+                      ([key, value]) => `
+                        <tr>
+                          <td>${escapeHtml(key)}</td>
+                          <td>${
+                            editable
+                              ? `<textarea class="table-edit-input" data-field="${escapeHtml(key)}">${escapeHtml(
+                                  String(value ?? "")
+                                )}</textarea>`
+                              : formatWebhookValue(value)
+                          }</td>
+                        </tr>
+                      `
+                    )
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="response-table-wrap">
+            <table class="response-table">
+              <thead>
+                <tr>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>${formatWebhookValue(body)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderEditableWebhookEditor(body) {
+        if (body === null || body === undefined || body === "") {
+          return `<div class="response-empty">${escapeHtml(t("exportModalTableEmpty"))}</div>`;
+        }
+
+        function renderEditableField(field, value, rowIndex) {
+          const readOnly = isReadOnlyExportField(field);
+          const rowIndexAttr = rowIndex === undefined ? "" : ` data-row-index="${rowIndex}"`;
+          const readOnlyAttr = readOnly ? " readonly aria-readonly=\"true\"" : "";
+          const readOnlyClass = readOnly ? " table-edit-input-readonly" : "";
+          return `
+            <div class="edit-field-row">
+              <span class="edit-field-label">${escapeHtml(field)}</span>
+              <textarea
+                class="table-edit-input${readOnlyClass}"
+                data-field="${escapeHtml(field)}"${rowIndexAttr}${readOnlyAttr}
+              >${escapeHtml(String(value ?? ""))}</textarea>
+            </div>
+          `;
+        }
+
+        if (Array.isArray(body)) {
+          if (!body.length) {
+            return `<div class="response-empty">${escapeHtml(t("exportModalTableEmpty"))}</div>`;
+          }
+
+          return `
+            <div class="edit-record-list">
+              ${(() => {
+                const allObjects = body.every((item) => item && typeof item === "object" && !Array.isArray(item));
+                if (!allObjects) {
+                  return body
+                    .map((row, rowIndex) => {
+                      const fields = Object.entries(row || {});
+                      return `
+                        <article class="edit-record-card">
+                          <div class="edit-record-head">
+                            <strong>${escapeHtml(t("responseItemLabel", { index: rowIndex + 1 }))}</strong>
+                          </div>
+                          <div class="edit-field-list">
+                            ${fields.map(([field, value]) => renderEditableField(field, value, rowIndex)).join("")}
+                          </div>
+                        </article>
+                      `;
+                    })
+                    .join("");
+                }
+
+                const columns = orderExportColumns([...new Set(body.flatMap((item) => Object.keys(item)))]);
+                return `
+                  <div class="response-table-wrap response-table-wrap-edit">
+                    <table class="response-table response-table-edit">
+                      <thead>
+                        <tr>${columns
+                          .map((column) =>
+                            String(column || "").trim().toLowerCase() === "id"
+                              ? `<th class="${getExportTableColumnClass(column)}"><button type="button" class="table-sort-button" data-sort-field="id">${escapeHtml(
+                                  column
+                                )} ${exportPreviewState?.sortDirection === "desc" ? "↓" : "↑"}</button></th>`
+                              : `<th class="${getExportTableColumnClass(column)}">${escapeHtml(column)}</th>`
+                          )
+                          .join("")}<th class="col-action">${escapeHtml(t("actionLabel"))}</th></tr>
+                      </thead>
+                      <tbody>
+                        ${body
+                          .map(
+                            (item, rowIndex) => `
+                              <tr>
+                                ${columns
+                                  .map((column) => {
+                                    const value = item?.[column];
+                                    const readOnly = isReadOnlyExportField(column);
+                                    const columnClass = getExportTableColumnClass(column);
+                                    const descriptionClass =
+                                      columnClass === "col-description" ? " table-edit-input-description" : "";
+                                    return `
+                                      <td class="table-edit-cell ${columnClass}${readOnly ? " table-edit-cell-readonly" : ""}">
+                                        <textarea
+                                          class="table-edit-input table-edit-input-compact${descriptionClass}${readOnly ? " table-edit-input-readonly" : ""}"
+                                          data-row-index="${rowIndex}"
+                                          data-field="${escapeHtml(column)}"${readOnly ? ' readonly aria-readonly="true"' : ""}
+                                        >${escapeHtml(String(value ?? ""))}</textarea>
+                                      </td>
+                                    `;
+                                  })
+                                  .join("")}
+                                <td class="table-edit-cell col-action">
+                                  <button
+                                    type="button"
+                                    class="row-delete-button"
+                                    data-delete-row-index="${rowIndex}"
+                                  >${escapeHtml(t("exportModalDeleteRowButton"))}</button>
+                                </td>
+                              </tr>
+                            `
+                          )
+                          .join("")}
+                      </tbody>
+                    </table>
+                  </div>
+                `;
+              })()}
+            </div>
+          `;
+        }
+
+        if (typeof body === "object") {
+          return `
+            <article class="edit-record-card">
+              <div class="edit-field-list">
+                ${Object.entries(body).map(([field, value]) => renderEditableField(field, value)).join("")}
+              </div>
+            </article>
+          `;
+        }
+
+        return `
+          <article class="edit-record-card">
+            <div class="edit-field-row">
+              <span class="edit-field-label">Value</span>
+              <textarea class="table-edit-input" data-field="value">${escapeHtml(String(body))}</textarea>
+            </div>
+          </article>
+        `;
+      }
+
+      function renderActionCard(action) {
+        if (action !== "check") {
+          return;
+        }
+
+        const card = checkResponseCard;
+        const badge = checkResponseBadge;
+        const body = checkResponseBody;
+        const state = actionCardStates[action];
+
+        if (!state || state.type === "idle") {
+          card.className = "action-response-card";
+          badge.className = "mini-badge idle";
+          badge.textContent = t("notUsedYet");
+          body.innerHTML = escapeHtml(t("actionCardIdleBody"));
+          return;
+        }
+
+        if (state.type === "loading") {
+          card.className = "action-response-card loading";
+          badge.className = "mini-badge loading";
+          badge.textContent = t("sendingCommand");
+          body.innerHTML = `
+            <div class="response-meta">
+              <span>${escapeHtml(t("actionLabel"))}: ${escapeHtml(state.action)}</span>
+              <span>${escapeHtml(t("emailMetaLabel"))}: ${escapeHtml(state.email || "-")}</span>
+            </div>
+            <div class="response-empty">${escapeHtml(t("waitingRespondToWebhook"))}</div>
+          `;
+          return;
+        }
+
+        if (state.type === "error") {
+          card.className = "action-response-card error";
+          badge.className = "mini-badge error";
+          badge.textContent = t("connectionFailed");
+          body.innerHTML = `
+            <div class="response-meta">
+              <span>${escapeHtml(t("actionLabel"))}: ${escapeHtml(state.action)}</span>
+              <span>${escapeHtml(t("emailMetaLabel"))}: ${escapeHtml(state.email || "-")}</span>
+            </div>
+            <div class="response-plain">${escapeHtml(state.message)}</div>
+          `;
+          return;
+        }
+
+        const isSuccess = Boolean(state.ok);
+        card.className = `action-response-card ${isSuccess ? "success" : "error"}`;
+        badge.className = `mini-badge ${isSuccess ? "success" : "error"}`;
+        badge.textContent = isSuccess ? t("successShort") : t("failedShort");
+        body.innerHTML = `
+          <div class="response-meta">
+            <span>${escapeHtml(t("actionLabel"))}: ${escapeHtml(state.result.action || action)}</span>
+            <span>${escapeHtml(t("emailMetaLabel"))}: ${escapeHtml(state.result.email || state.email || "-")}</span>
+            <span>${escapeHtml(t("webhookMetaLabel"))}: ${escapeHtml(String(state.result.webhookStatus || "-"))}</span>
+          </div>
+          ${renderWebhookBody(state.result.webhookBody)}
+        `;
+      }
+
+      function renderExportPreviewModal() {
+        const state = exportPreviewState;
+
+        if (!state || state.type === "idle") {
+          exportModalMessage.className = "settings-message idle";
+          exportModalMessage.textContent = t("exportModalIdle");
+          exportModalResponseCard.className = "action-response-card";
+          exportModalResponseBadge.className = "mini-badge idle";
+          exportModalResponseBadge.textContent = t("notUsedYet");
+          exportModalResponseBody.innerHTML = `<div class="response-empty">${escapeHtml(t("exportModalIdle"))}</div>`;
+          editExportButton.textContent = t("exportModalEditButton");
+          editExportButton.disabled = true;
+          cancelEditExportButton.hidden = true;
+          cancelEditExportButton.disabled = true;
+          exportAndClearConfirmButton.hidden = false;
+          exportAndClearConfirmButton.disabled = true;
+          return;
+        }
+
+        if (state.type === "loading") {
+          exportModalMessage.className = "settings-message loading";
+          exportModalMessage.textContent =
+            state.action === "edit"
+              ? t("exportModalEditLoading")
+              : state.action === "delete"
+                ? t("exportModalDeleteLoading")
+                : t("exportModalLoading");
+          exportModalResponseCard.className = "action-response-card loading";
+          exportModalResponseBadge.className = "mini-badge loading";
+          exportModalResponseBadge.textContent = t("sendingCommand");
+          exportModalResponseBody.innerHTML = `
+            <div class="response-meta">
+              <span>${escapeHtml(t("actionLabel"))}: ${escapeHtml(state.action || "export")}</span>
+              <span>${escapeHtml(t("emailMetaLabel"))}: ${escapeHtml(state.email || "-")}</span>
+            </div>
+            <div class="response-empty">${escapeHtml(t("waitingRespondToWebhook"))}</div>
+          `;
+          editExportButton.textContent =
+            state.action === "edit" ? t("exportModalSaveEditButton") : t("exportModalEditButton");
+          editExportButton.disabled = true;
+          cancelEditExportButton.hidden = true;
+          cancelEditExportButton.disabled = true;
+          exportAndClearConfirmButton.hidden = true;
+          exportAndClearConfirmButton.disabled = true;
+          return;
+        }
+
+        if (state.type === "error") {
+          exportModalMessage.className = "settings-message error";
+          exportModalMessage.textContent = state.message || t("serverConnectionFailed");
+          exportModalResponseCard.className = "action-response-card error";
+          exportModalResponseBadge.className = "mini-badge error";
+          exportModalResponseBadge.textContent = t("failedShort");
+          exportModalResponseBody.innerHTML = `<div class="response-plain">${escapeHtml(state.message || t("serverConnectionFailed"))}</div>`;
+          editExportButton.textContent = t("exportModalEditButton");
+          editExportButton.disabled = true;
+          cancelEditExportButton.hidden = true;
+          cancelEditExportButton.disabled = true;
+          exportAndClearConfirmButton.hidden = false;
+          exportAndClearConfirmButton.disabled = true;
+          return;
+        }
+
+        const isSuccess = Boolean(state.ok);
+        const editing = Boolean(state.isEditing);
+        exportModalMessage.className = `settings-message ${editing ? "loading" : isSuccess ? "success" : "error"}`;
+        exportModalMessage.textContent = state.messageOverride
+          ? state.messageOverride
+          : editing
+            ? t("exportModalEditing")
+            : state.action === "edit" && isSuccess
+              ? t("exportModalEditSuccess")
+              : state.action === "delete" && isSuccess
+                ? t("exportModalDeleteSuccess")
+                : resolveMessage(state.result || {}, "uploadSuccessDefault", "uploadErrorDefault");
+        exportModalResponseCard.className = `action-response-card ${isSuccess ? "success" : "error"}`;
+        exportModalResponseBadge.className = `mini-badge ${isSuccess ? "success" : "error"}`;
+        exportModalResponseBadge.textContent = isSuccess ? t("successShort") : t("failedShort");
+        exportModalResponseBody.innerHTML = `
+          <div class="response-meta">
+            <span>${escapeHtml(t("actionLabel"))}: ${escapeHtml(state.result.action || state.action || "export")}</span>
+            <span>${escapeHtml(t("emailMetaLabel"))}: ${escapeHtml(state.result.email || state.email || "-")}</span>
+            <span>${escapeHtml(t("webhookMetaLabel"))}: ${escapeHtml(String(state.result.webhookStatus || "-"))}</span>
+          </div>
+          ${editing ? renderEditableWebhookEditor(state.editedBody) : renderWebhookTable(state.result.webhookBody)}
+        `;
+        editExportButton.textContent = editing ? t("exportModalSaveEditButton") : t("exportModalEditButton");
+        editExportButton.disabled = !canEditWebhookBody(state.result.webhookBody);
+        cancelEditExportButton.hidden = !editing;
+        cancelEditExportButton.disabled = !editing;
+        exportAndClearConfirmButton.hidden = editing;
+        exportAndClearConfirmButton.disabled = !isSuccess || editing;
+      }
+
+      function resolveMessage(result, successKey, errorKey) {
+        if (result.messageKey) {
+          return t(result.messageKey, result.messageVars || {});
+        }
+        if (result.message) {
+          return result.message;
+        }
+        return result.ok === false ? t(errorKey) : t(successKey);
+      }
+
+      function createSequentialUploadItems(files) {
+        return files.map((file, index) => ({
+          fileIndex: index + 1,
+          originalName: file.name,
+          ok: null,
+          state: "queued",
+          uploadPercent: 0,
+          progress: null,
+          detail: t("sequentialQueuedDetail", {
+            name: file.name
+          }),
+          successCount: 0,
+          failureCount: 0,
+          outboundFileCount: 0
+        }));
+      }
+
+      const OCR_STAGE_SEQUENCE = [
+        "rendering_pdf",
+        "preprocessing_image",
+        "normalizing_size",
+        "cropping_document",
+        "deskewing_document",
+        "detecting_document_profile",
+        "cleanup_document",
+        "grayscale_document",
+        "visual_cleanup",
+        "denoise_document",
+        "enhance_document",
+        "scoring_ocr_candidates"
+      ];
+
+      const OCR_CANDIDATE_SEQUENCE = [
+        "clean",
+        "otsu_threshold",
+        "adaptive_threshold",
+        "dark_text",
+        "digit_focus"
+      ];
+
+      const PROGRESS_SEGMENTS = {
+        upload: { start: 0, end: 18 },
+        queue: { start: 18, end: 24 },
+        preprocess: { start: 24, end: 78 },
+        forward: { start: 78, end: 99 }
+      };
+
+      function clampProgressValue(value, min = 0, max = 100) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function interpolateProgressSegment(segment, ratio) {
+        const safeRatio = clampProgressValue(Number(ratio) || 0, 0, 1);
+        return Math.round(
+          segment.start + ((segment.end - segment.start) * safeRatio)
+        );
+      }
+
+      function getOcrStageWeight(phase) {
+        return phase === "scoring_ocr_candidates" ? OCR_CANDIDATE_SEQUENCE.length : 1;
+      }
+
+      function getOcrRenderUnits(progress, pageCount, currentPage) {
+        let completedUnits = 0;
+
+        for (const phase of OCR_STAGE_SEQUENCE) {
+          if (phase === progress.phase) {
+            if (phase === "scoring_ocr_candidates") {
+              const candidate = String(progress.candidate || "");
+              const candidateIndex = OCR_CANDIDATE_SEQUENCE.indexOf(candidate);
+              completedUnits += Math.max(0, candidateIndex) + 1;
+            } else {
+              completedUnits += 1;
+            }
+            break;
+          }
+
+          completedUnits += getOcrStageWeight(phase);
+        }
+
+        const unitsPerPage = OCR_STAGE_SEQUENCE.reduce(
+          (sum, phase) => sum + getOcrStageWeight(phase),
+          0
+        );
+
+        return {
+          completedUnits: Math.max(0, ((currentPage - 1) * unitsPerPage) + completedUnits),
+          totalUnits: Math.max(1, pageCount * unitsPerPage)
+        };
+      }
+
+      function getItemProgressSnapshot(item) {
+        const progress = item?.progress;
+        const uploadPercent = Number(item?.uploadPercent);
+
+        if (
+          item?.state === "uploading" &&
+          Number.isFinite(uploadPercent)
+        ) {
+          return {
+            percent: interpolateProgressSegment(
+              PROGRESS_SEGMENTS.upload,
+              uploadPercent / 100
+            ),
+            metaText: `${clampProgressValue(Math.round(uploadPercent))}% uploaded`
+          };
+        }
+
+        if (!progress || typeof progress !== "object") {
+          return item?.state === "success"
+            ? {
+                percent: 100,
+                metaText: "Completed"
+              }
+            : null;
+        }
+
+        const pageCount = Math.max(
+          1,
+          Number(progress.pageCount || progress.preparedPages || progress.outboundFileCount || 1)
+        );
+        const currentPage = Math.max(
+          1,
+          Number(progress.currentPageNumber || progress.preparedPages || progress.sentPages || 1)
+        );
+        const sentPages = Math.max(0, Number(progress.sentPages || 0));
+
+        let percent = 0;
+        let metaText = "";
+
+        if (progress.phase === "queued") {
+          percent = PROGRESS_SEGMENTS.queue.start;
+          metaText = "Queued";
+        } else if (progress.phase === "preparing" || progress.phase === "processing") {
+          percent = PROGRESS_SEGMENTS.queue.end;
+          metaText = "Preparing";
+        } else if (progress.phase === "forwarding_original") {
+          const current = Math.max(0, Math.min(pageCount, sentPages));
+          percent = interpolateProgressSegment(
+            PROGRESS_SEGMENTS.forward,
+            current / pageCount
+          );
+          metaText = `${current}/${pageCount} file`;
+        } else if (progress.phase === "completed" || progress.phase === "completed_with_errors") {
+          const completed = Math.max(sentPages, pageCount);
+          percent = 100;
+          metaText = `${Math.min(completed, pageCount)}/${pageCount} done`;
+        } else if (progress.phase === "forwarding_image_ocr") {
+          const total = Math.max(1, pageCount);
+          const current = Math.max(0, Math.min(total, sentPages));
+          percent = interpolateProgressSegment(
+            PROGRESS_SEGMENTS.forward,
+            current / total
+          );
+          metaText = `${current}/${total} image`;
+        } else if (progress.phase === "forwarding_pdf_pages") {
+          const total = Math.max(1, pageCount);
+          const current = Math.max(0, Math.min(total, sentPages));
+          percent = interpolateProgressSegment(
+            PROGRESS_SEGMENTS.forward,
+            current / total
+          );
+          metaText = `${current}/${total} pages`;
+        } else if (OCR_STAGE_SEQUENCE.includes(progress.phase)) {
+          const renderUnits = getOcrRenderUnits(progress, pageCount, currentPage);
+          const current = Math.max(
+            0,
+            Math.min(renderUnits.totalUnits, renderUnits.completedUnits)
+          );
+          const total = Math.max(1, renderUnits.totalUnits);
+          percent = interpolateProgressSegment(
+            PROGRESS_SEGMENTS.preprocess,
+            current / total
+          );
+          metaText = `${current}/${total} steps`;
+        } else if (progress.phase === "failed") {
+          if (sentPages > 0 && pageCount > 0) {
+            percent = interpolateProgressSegment(
+              PROGRESS_SEGMENTS.forward,
+              sentPages / pageCount
+            );
+            metaText = `${Math.min(sentPages, pageCount)}/${pageCount} pages`;
+          } else if (currentPage > 0 && pageCount > 0) {
+            const renderUnits = getOcrRenderUnits(
+              {
+                ...progress,
+                phase: OCR_STAGE_SEQUENCE.includes(progress.lastKnownPhase)
+                  ? progress.lastKnownPhase
+                  : "preprocessing_image"
+              },
+              pageCount,
+              currentPage
+            );
+            percent = interpolateProgressSegment(
+              PROGRESS_SEGMENTS.preprocess,
+              renderUnits.completedUnits / Math.max(1, renderUnits.totalUnits)
+            );
+            metaText = `${Math.min(currentPage, pageCount)}/${pageCount} pages`;
+          } else {
+            percent = PROGRESS_SEGMENTS.queue.end;
+            metaText = "Stopped";
+          }
+        } else {
+          return null;
+        }
+
+        return {
+          percent: clampProgressValue(percent, 4, 100),
+          metaText
+        };
+      }
+
+      function renderUploadTimelineItems(items) {
+        return items.map((item) => {
+          const timelineState =
+            item.state === "success"
+              ? "success"
+              : item.state === "error"
+                ? "error"
+                : item.state === "uploading" || item.state === "processing"
+                  ? "loading"
+                  : "neutral";
+          const progress = getItemProgressSnapshot(item);
+          const progressMarkup = progress
+            ? `
+                <div class="timeline-progress">
+                  <div class="timeline-progress-bar">
+                    <span style="width: ${progress.percent}%"></span>
+                  </div>
+                  <div class="timeline-progress-meta">${escapeHtml(progress.metaText || `${progress.percent}%`)}</div>
+                </div>
+              `
+            : "";
+
+          return `
+            <article class="timeline-item ${timelineState}">
+              <div class="timeline-dot"></div>
+              <div class="timeline-body">
+                <strong>${escapeHtml(t("fileLabel", { index: item.fileIndex }))}</strong>
+                <span>${escapeHtml(item.originalName || t("unnamedFile"))}</span>
+                <small>${escapeHtml(item.detail || t("noExtraDetails"))}</small>
+                ${progressMarkup}
+              </div>
+            </article>
+          `;
+        });
+      }
+
+      function renderUploadProgressBar() {
+        let percent = 0;
+        let progressState = "idle";
+        let metaText = t("uploadProgressIdle");
+
+        if (statusState.type === "uploading") {
+          progressState = "loading";
+          percent = 12;
+          metaText = t("queuedFiles", {
+            count: statusState.files?.length || 0
+          });
+        } else if (statusState.type === "uploading-sequential") {
+          const items = statusState.items || [];
+          const totalItems = Math.max(1, items.length);
+          const completedCount = items.filter((item) => item.state === "success" || item.state === "error").length;
+          const hasError = items.some((item) => item.state === "error");
+          const totalPercent = items.reduce((sum, item) => {
+            const snapshot = getItemProgressSnapshot(item);
+            if (snapshot) {
+              return sum + snapshot.percent;
+            }
+            if (item.state === "success" || item.state === "error") {
+              return sum + 100;
+            }
+            return sum;
+          }, 0);
+          percent = Math.round(totalPercent / totalItems);
+          progressState =
+            completedCount >= items.length && items.length
+              ? hasError
+                ? "error"
+                : "success"
+              : "loading";
+          const activeItem =
+            items.find((item) => item.state === "uploading" || item.state === "processing") ||
+            items.find((item) => item.state === "queued");
+          metaText =
+            activeItem?.detail ||
+            t("sequentialProgressSummary", {
+              current: completedCount,
+              total: items.length
+            });
+        } else if (statusState.type === "result") {
+          const firstKind = String(statusState.result?.results?.[0]?.processedKind || "").toLowerCase();
+          const isActionResult = ["check", "export", "exportandclear", "clearhistory", "edit", "delete"].includes(firstKind);
+          if (!isActionResult) {
+            percent = 100;
+            progressState = statusState.isError || statusState.result?.ok === false ? "error" : "success";
+            metaText = resolveMessage(statusState.result || {}, "uploadSuccessDefault", "uploadErrorDefault");
+          }
+        }
+
+        uploadProgressCard.className = `upload-progress-card ${progressState}`;
+        uploadProgressFill.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+        uploadProgressPercent.textContent = `${Math.max(0, Math.min(100, percent))}%`;
+        uploadProgressMeta.textContent = metaText;
+      }
+
+      function buildSharedUploadFields() {
+        return {
+          senderName: senderNameInput.value.trim(),
+          senderEmail: senderEmail.value.trim(),
+          note: noteInput.value.trim()
+        };
+      }
+
+      function createUploadRequestId() {
+        return `upload-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      }
+
+      function formatProcessingDetail(name, progress) {
+        if (!progress || typeof progress !== "object") {
+          return t("sequentialProcessingDetail", { name });
+        }
+
+        const pageCount = Number(progress.pageCount || progress.preparedPages || progress.outboundFileCount || 0);
+        const currentPage = Number(progress.currentPageNumber || progress.preparedPages || progress.sentPages || 0);
+        const sentPages = Number(progress.sentPages || 0);
+
+        if (progress.phase === "forwarding_pdf_pages") {
+          return t("sequentialPdfForwardDetail", {
+            name,
+            sentPages,
+            pageCount: pageCount || 0
+          });
+        }
+
+        if (progress.phase === "forwarding_image_ocr") {
+          return t("sequentialImageForwardDetail", { name });
+        }
+
+        if (progress.phase === "forwarding_original") {
+          return t("sequentialOriginalForwardDetail", { name });
+        }
+
+        if (OCR_STAGE_SEQUENCE.includes(progress.phase)) {
+          const phaseKeyMap = {
+            rendering_pdf: "sequentialPhaseRenderingPdf",
+            preprocessing_image: "sequentialPhasePreparingImage",
+            normalizing_size: "sequentialPhaseNormalizingSize",
+            cropping_document: "sequentialPhaseCroppingDocument",
+            deskewing_document: "sequentialPhaseDeskewingDocument",
+            detecting_document_profile: "sequentialPhaseDetectingProfile",
+            cleanup_document: "sequentialPhaseCleanupDocument",
+            grayscale_document: "sequentialPhaseGrayscaleDocument",
+            visual_cleanup: "sequentialPhaseVisualCleanup",
+            denoise_document: "sequentialPhaseDenoiseDocument",
+            enhance_document: "sequentialPhaseEnhanceDocument",
+            scoring_ocr_candidates: "sequentialPhaseScoringCandidates"
+          };
+          return t("sequentialPhaseDetail", {
+            name,
+            phase: t(phaseKeyMap[progress.phase] || "sequentialProcessingDetail"),
+            currentPage: currentPage || 1,
+            pageCount: pageCount || 1,
+            candidate: progress.candidate || "-"
+          });
+        }
+
+        if (progress.phase === "rendering_pdf") {
+          return t("sequentialPdfRenderDetail", {
+            name,
+            currentPage: currentPage || 0,
+            pageCount: pageCount || 0
+          });
+        }
+
+        if (progress.phase === "completed" || progress.phase === "completed_with_errors") {
+          return t("sequentialCompletedDetail", {
+            name,
+            sentPages,
+            pageCount: pageCount || Math.max(sentPages, 1)
+          });
+        }
+
+        if (progress.phase === "failed") {
+          return t("sequentialFailedDetail", {
+            name,
+            currentPage: currentPage || 0,
+            pageCount: pageCount || 0,
+            message: progress.error || t("uploadErrorDefault")
+          });
+        }
+
+        return t("sequentialProcessingDetail", { name });
+      }
+
+      function uploadSingleFile(file, fields, onStateChange) {
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          const formData = new FormData();
+          const uploadRequestId = createUploadRequestId();
+          let pollTimer = null;
+          let settled = false;
+
+          function stopPolling() {
+            if (pollTimer) {
+              clearInterval(pollTimer);
+              pollTimer = null;
+            }
+          }
+
+          async function pollProgress() {
+            if (settled) {
+              return;
+            }
+
+            try {
+              const response = await fetch(`/upload-progress/${encodeURIComponent(uploadRequestId)}`);
+              if (!response.ok) {
+                return;
+              }
+
+              const result = await response.json();
+              if (!result.ok || !result.progress) {
+                return;
+              }
+
+              onStateChange({
+                phase: "processing",
+                progress: result.progress
+              });
+
+              if (
+                result.progress.phase === "completed" ||
+                result.progress.phase === "completed_with_errors" ||
+                result.progress.phase === "failed"
+              ) {
+                settled = true;
+                stopPolling();
+                resolve({
+                  ok: result.progress.result?.ok !== false,
+                  status: result.progress.result?.ok === false ? 502 : 200,
+                  result: result.progress.result || {
+                    ok: result.progress.phase === "completed",
+                    message: result.progress.error || t("uploadErrorDefault")
+                  }
+                });
+              }
+            } catch (error) {
+              // Ignore transient polling errors while the upload request is still active.
+            }
+          }
+
+          formData.append("files", file, file.name);
+          formData.append("uploadRequestId", uploadRequestId);
+
+          for (const [key, value] of Object.entries(fields)) {
+            formData.append(key, value);
+          }
+
+          xhr.open("POST", "/upload");
+          xhr.timeout = 0;
+
+          xhr.upload.addEventListener("loadstart", () => {
+            onStateChange({
+              phase: "uploading",
+              percent: 0
+            });
+          });
+
+          xhr.upload.addEventListener("progress", (event) => {
+            const percent = event.lengthComputable
+              ? Math.max(1, Math.min(100, Math.round((event.loaded / event.total) * 100)))
+              : null;
+
+            onStateChange({
+              phase: "uploading",
+              percent
+            });
+          });
+
+          xhr.upload.addEventListener("load", () => {
+            onStateChange({
+              phase: "processing",
+              percent: 100,
+              progress: {
+                phase: "processing"
+              }
+            });
+          });
+
+          xhr.addEventListener("load", () => {
+            let result = {};
+
+            try {
+              result = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+            } catch (error) {
+              stopPolling();
+              const rawResponse = (xhr.responseText || "").trim();
+              const detail = rawResponse
+                ? `${t("invalidServerResponse")} ${rawResponse.slice(0, 180)}`
+                : t("invalidServerResponse");
+              reject(new Error(detail));
+              return;
+            }
+
+            if (result.accepted && result.uploadRequestId && xhr.status >= 200 && xhr.status < 300) {
+              void pollProgress();
+              pollTimer = setInterval(() => {
+                void pollProgress();
+              }, 450);
+              return;
+            }
+
+            stopPolling();
+            settled = true;
+            resolve({
+              ok: xhr.status >= 200 && xhr.status < 300,
+              status: xhr.status,
+              result
+            });
+          });
+
+          xhr.addEventListener("error", () => {
+            stopPolling();
+            settled = true;
+            reject(new Error(t("serverConnectionFailed")));
+          });
+
+          xhr.addEventListener("abort", () => {
+            stopPolling();
+            settled = true;
+            reject(new Error(t("serverConnectionFailed")));
+          });
+
+          xhr.addEventListener("timeout", () => {
+            stopPolling();
+            settled = true;
+            reject(new Error(t("requestTimedOut")));
+          });
+
+          xhr.send(formData);
+        });
+      }
+
+      function renderStatus() {
+        renderUploadProgressBar();
+
+        if (statusState.type === "idle") {
+          setPanelState("idle");
+          statusBadge.textContent = t("ready");
+          statusMessage.textContent = t("readyMessage");
+          statusNumbers.textContent = t("readyResult");
+          statusMeta.textContent = t("readyMeta");
+          renderTimeline([
+            `
+              <article class="timeline-item neutral">
+                <div class="timeline-dot"></div>
+                <div class="timeline-body">
+                  <strong>${escapeHtml(t("waiting"))}</strong>
+                  <span>${escapeHtml(t("waitingSub"))}</span>
+                </div>
+              </article>
+            `
+          ]);
+          return;
+        }
+
+        if (statusState.type === "uploading") {
+          setPanelState("loading");
+          statusBadge.textContent = t("processing");
+          statusMessage.textContent = t("processingMessage");
+          statusNumbers.textContent = t("queuedFiles", {
+            count: statusState.files.length
+          });
+          statusMeta.textContent = t("startedAt", {
+            timestamp: formatTimestamp()
+          });
+          renderTimeline(
+            statusState.files.map(
+              (file, index) => `
+                <article class="timeline-item loading">
+                  <div class="timeline-dot"></div>
+                  <div class="timeline-body">
+                    <strong>${escapeHtml(t("queuedLabel", { index: index + 1 }))}</strong>
+                    <span>${escapeHtml(t("queuedMessage", { name: file.name }))}</span>
+                  </div>
+                </article>
+              `
+            )
+          );
+          return;
+        }
+
+        if (statusState.type === "uploading-sequential") {
+          const items = statusState.items || [];
+          const completedCount = items.filter((item) => item.state === "success" || item.state === "error")
+            .length;
+
+          setPanelState("loading");
+          statusBadge.textContent = t("processing");
+          statusMessage.textContent = t("processingSequentialMessage");
+          statusNumbers.textContent = t("sequentialProgressSummary", {
+            current: completedCount,
+            total: items.length
+          });
+          statusMeta.textContent = t("startedAt", {
+            timestamp: statusState.startedAt || formatTimestamp()
+          });
+          renderTimeline(renderUploadTimelineItems(items));
+          return;
+        }
+
+        if (statusState.type === "action-loading") {
+          setPanelState("loading");
+          statusBadge.textContent =
+            statusState.action === "check"
+              ? t("checkingActionStatus")
+              : statusState.action === "clearhistory"
+                ? t("sendingCommand")
+              : statusState.action === "edit"
+                ? t("sendingCommand")
+                : t("exportingActionStatus");
+          statusMessage.textContent =
+            statusState.action === "check"
+              ? t("checkingActionMessage")
+              : statusState.action === "clearhistory"
+                ? `${t("clearHistoryButton")}...`
+              : statusState.action === "exportandclear"
+                ? t("exportAndClearLoading")
+                : t("exportingActionMessage");
+          statusNumbers.textContent = statusState.email
+            ? `${t("emailMetaLabel")} ${statusState.email}`
+            : t("preparingRequest");
+          statusMeta.textContent = t("startedAt", {
+            timestamp: formatTimestamp()
+          });
+          renderTimeline([
+            `
+              <article class="timeline-item loading">
+                <div class="timeline-dot"></div>
+                <div class="timeline-body">
+                  <strong>${escapeHtml(
+                    statusState.action === "check"
+                      ? t("checkRequest")
+                      : statusState.action === "clearhistory"
+                        ? t("clearHistoryButton")
+                      : statusState.action === "exportandclear"
+                        ? t("exportAndClearRequest")
+                        : t("exportRequest")
+                  )}</strong>
+                  <span>${escapeHtml(
+                    t("requestSendingMessage", {
+                      email: statusState.email || "-"
+                    })
+                  )}</span>
+                </div>
+              </article>
+            `
+          ]);
+          return;
+        }
+
+        if (statusState.type === "result") {
+          const result = statusState.result;
+          const state = statusState.isError || result.ok === false ? "error" : "success";
+          const successCount = result.successCount ?? 0;
+          const failureCount = result.failureCount ?? 0;
+          const outboundFileCount = result.outboundFileCount ?? result.fileCount ?? 0;
+
+          setPanelState(state);
+          statusBadge.textContent = state === "success" ? t("completed") : t("needsReview");
+          statusMessage.textContent = resolveMessage(
+            result,
+            "uploadSuccessDefault",
+            "uploadErrorDefault"
+          );
+          statusNumbers.textContent =
+            state === "success"
+              ? t("deliveriesCompleted", {
+                  successCount,
+                  outboundFileCount
+                })
+              : t("resultsMixed", {
+                  successCount,
+                  failureCount
+                });
+          statusMeta.textContent = [
+            result.batchId ? t("batchLabel", { batchId: result.batchId }) : null,
+            t("updatedAt", { timestamp: formatTimestamp() })
+          ]
+            .filter(Boolean)
+            .join(" | ");
+
+          const timelineResults =
+            Array.isArray(result.fileResults) && result.fileResults.length
+              ? result.fileResults
+              : Array.isArray(result.results) && result.results.length
+                ? result.results
+                : [];
+
+          if (timelineResults.length) {
+            renderTimeline(
+              timelineResults.map((item) => {
+                const itemState = item.ok ? "success" : "error";
+                const detail = item.detailMessage
+                  ? item.detailMessage
+                  : [
+                      item.sourceOriginalName
+                        ? `${t("sourceLabel")}: ${item.sourceOriginalName}`
+                        : null,
+                      item.sourcePageNumber ? `${t("pageLabel")} ${item.sourcePageNumber}` : null,
+                      item.processedKind ? `${t("kindLabel")}: ${item.processedKind}` : null,
+                      item.webhookStatus
+                        ? `${t("webhookMetaLabel")}: ${item.webhookStatus}`
+                        : null,
+                      item.errorKey ? t(item.errorKey) : item.error || null
+                    ]
+                      .filter(Boolean)
+                      .join(" | ");
+
+                return `
+                  <article class="timeline-item ${itemState}">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-body">
+                      <strong>${escapeHtml(
+                        item.ok ? t("delivered") : t("failed")
+                      )} ${escapeHtml(String(item.fileIndex || ""))}</strong>
+                      <span>${escapeHtml(item.originalName || t("unnamedFile"))}</span>
+                      <small>${escapeHtml(detail || t("noExtraDetails"))}</small>
+                    </div>
+                  </article>
+                `;
+              })
+            );
+            return;
+          }
+
+          renderTimeline([
+            `
+              <article class="timeline-item ${state}">
+                <div class="timeline-dot"></div>
+                <div class="timeline-body">
+                  <strong>${escapeHtml(
+                    state === "success" ? t("completed") : t("issueDetected")
+                  )}</strong>
+                  <span>${escapeHtml(resolveMessage(result, "uploadSuccessDefault", "noAdditionalDetails"))}</span>
+                </div>
+              </article>
+            `
+          ]);
+        }
+      }
+
+      async function triggerDocAction(action, options = {}) {
+        const {
+          useExportModal = false,
+          clearHistoryAfterSuccess = false,
+          editedData = null,
+          rowData = null,
+          rowDeleteIndex = null
+        } = options;
+        const email = senderEmail.value.trim();
+        const previousExportPreviewState = useExportModal ? exportPreviewState : null;
+        const previousEditedBody = useExportModal ? deepCloneValue(previousExportPreviewState?.editedBody) : null;
+
+        if (!email) {
+          statusState = {
+            type: "result",
+            isError: true,
+            result: {
+              ok: false,
+              messageKey: "emailRequiredMessage",
+              results: [
+                {
+                  ok: false,
+                  originalName: action === "check" ? "Check action" : "Export action",
+                  errorKey: "emailRequiredError"
+                }
+              ]
+            }
+          };
+          renderStatus();
+          return;
+        }
+
+        checkButton.disabled = true;
+        exportButton.disabled = true;
+        submitButton.disabled = true;
+        exportAndClearConfirmButton.disabled = true;
+        clearHistoryButton.disabled = true;
+        statusState = {
+          type: "action-loading",
+          action,
+          email
+        };
+        if (action === "check") {
+          actionCardStates.check = {
+            type: "loading",
+            action,
+            email
+          };
+        }
+        if (useExportModal) {
+          exportPreviewState = {
+            type: "loading",
+            action,
+            email
+          };
+          openExportPreviewModal();
+        }
+        renderStatus();
+        if (action === "check") {
+          renderActionCard("check");
+        }
+        if (useExportModal) {
+          renderExportPreviewModal();
+        }
+
+        try {
+          const response = await fetch("/doc-action", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              action,
+              email,
+              editedData,
+              rowData
+            })
+          });
+
+          const result = await response.json();
+
+          const actionSucceeded = response.ok && result.ok;
+          let historyCleared = false;
+          const normalizedResult = {
+            ...result,
+            message:
+              action === "edit" && actionSucceeded
+                ? t("exportModalEditSuccess")
+                : action === "delete" && actionSucceeded
+                  ? t("exportModalDeleteSuccess")
+                : result.message
+          };
+
+          if (clearHistoryAfterSuccess && actionSucceeded) {
+            historyCleared = await clearUploadHistory({ silent: true });
+          }
+
+          if (action === "check") {
+            actionCardStates.check = {
+              type: "result",
+              ok: actionSucceeded,
+              email,
+              result: {
+                ...normalizedResult,
+                historyCleared
+              }
+            };
+            renderActionCard("check");
+          }
+
+          if (useExportModal) {
+            let localWebhookBody = deepCloneValue(result.webhookBody);
+            let keepEditing = false;
+            let messageOverride = null;
+
+            if (
+              action === "delete" &&
+              actionSucceeded &&
+              Array.isArray(previousEditedBody) &&
+              Number.isInteger(rowDeleteIndex)
+            ) {
+              localWebhookBody = previousEditedBody.filter((_, index) => index !== rowDeleteIndex);
+              keepEditing = true;
+              messageOverride = t("exportModalDeleteSuccess");
+            } else if (action === "edit" && actionSucceeded) {
+              messageOverride = t("exportModalEditSuccess");
+            }
+
+            const originalBody = deepCloneValue(localWebhookBody);
+            exportPreviewState = {
+              type: "result",
+              ok: actionSucceeded,
+              action,
+              email,
+              isEditing: keepEditing,
+              sortDirection: previousExportPreviewState?.sortDirection || "asc",
+              messageOverride,
+              originalBody,
+              editedBody: deepCloneValue(originalBody),
+              result: {
+                ...normalizedResult,
+                webhookBody: localWebhookBody,
+                historyCleared
+              }
+            };
+            sortExportPreviewRowsInState(exportPreviewState.sortDirection || "asc");
+            renderExportPreviewModal();
+          }
+
+          statusState = {
+            type: "result",
+            isError: !actionSucceeded,
+            result: {
+              ...normalizedResult,
+              historyCleared,
+              successCount: actionSucceeded ? 1 : 0,
+              failureCount: actionSucceeded ? 0 : 1,
+              outboundFileCount: 1,
+              results: [
+                {
+                  ok: actionSucceeded,
+                  fileIndex: 1,
+                  originalName:
+                    action === "check"
+                      ? "Check action"
+                      : action === "clearhistory"
+                        ? "Clear History action"
+                      : action === "delete"
+                        ? "Delete row action"
+                      : action === "exportandclear"
+                        ? "Export and Clear action"
+                        : "Export action",
+                  sourceOriginalName: email,
+                  processedKind: action,
+                  webhookStatus: result.webhookStatus,
+                  error: result.error || (!result.ok ? result.message : "")
+                }
+              ]
+            }
+          };
+          renderStatus();
+        } catch (error) {
+          if (action === "check") {
+            actionCardStates.check = {
+              type: "error",
+              action,
+              email,
+              message: error.message
+            };
+            renderActionCard("check");
+          }
+
+          if (useExportModal) {
+            exportPreviewState = {
+              type: "error",
+              action,
+              email,
+              message: error.message
+            };
+            renderExportPreviewModal();
+          }
+
+          statusState = {
+            type: "result",
+            isError: true,
+            result: {
+              ok: false,
+              messageKey: "serverConnectionFailed",
+              results: [
+                {
+                  ok: false,
+                  originalName:
+                    action === "check"
+                      ? "Check action"
+                      : action === "clearhistory"
+                        ? "Clear History action"
+                      : action === "delete"
+                        ? "Delete row action"
+                      : action === "exportandclear"
+                        ? "Export and Clear action"
+                        : "Export action",
+                  error: error.message
+                }
+              ]
+            }
+          };
+          renderStatus();
+        } finally {
+          checkButton.disabled = false;
+          exportButton.disabled = false;
+          submitButton.disabled = false;
+          exportAndClearConfirmButton.disabled = false;
+          clearHistoryButton.disabled = false;
+        }
+      }
+
+      async function runChatCommand() {
+        const command = chatInput.value.trim();
+        const node = chatNodeSelect.value.trim();
+
+        if (!node) {
+          setChatMessageState({ state: "error", key: "chatNodeRequired" });
+          chatResponseState = {
+            type: "error",
+            node,
+            command,
+            message: t("chatNodeRequired")
+          };
+          renderChatResponse();
+          return;
+        }
+
+        if (!command) {
+          setChatMessageState({ state: "error", key: "chatCommandRequired" });
+          chatResponseState = {
+            type: "error",
+            node,
+            command,
+            message: t("chatCommandRequired")
+          };
+          renderChatResponse();
+          return;
+        }
+
+        runChatCommandButton.disabled = true;
+        chatNodeSelect.disabled = true;
+        chatInput.disabled = true;
+        chatResponseState = {
+          type: "loading",
+          node,
+          command
+        };
+        setChatMessageState({ state: "loading", key: "chatSending" });
+        renderChatResponse();
+
+        try {
+          const response = await fetch("/web-command", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              message: command,
+              node
+            })
+          });
+
+          const result = await response.json();
+          const isSuccess = response.ok && result.ok;
+
+          chatResponseState = {
+            type: "result",
+            ok: isSuccess,
+            result
+          };
+          setChatMessageState({
+            state: isSuccess ? "success" : "error",
+            key: isSuccess ? "chatSuccess" : "chatFailed",
+            raw: isSuccess ? null : result.message || null
+          });
+          renderChatResponse();
+        } catch (error) {
+          chatResponseState = {
+            type: "error",
+            node,
+            command,
+            message: error.message
+          };
+          setChatMessageState({ state: "error", raw: error.message });
+          renderChatResponse();
+        } finally {
+          runChatCommandButton.disabled = false;
+          chatNodeSelect.disabled = chatNodesLoading;
+          chatInput.disabled = false;
+        }
+      }
+
+      chatButton.addEventListener("click", () => {
+        openChatModal();
+      });
+
+      settingsButton.addEventListener("click", () => {
+        openSettingsModal();
+      });
+
+      closeChatButton.addEventListener("click", () => {
+        closeChatModal();
+      });
+
+      closeSettingsButton.addEventListener("click", () => {
+        closeSettingsModal();
+      });
+
+      chatModal.addEventListener("click", (event) => {
+        if (event.target === chatModal) {
+          closeChatModal();
+        }
+      });
+
+      exportPreviewModal.addEventListener("click", (event) => {
+        if (event.target === exportPreviewModal) {
+          closeExportPreviewModal();
+        }
+      });
+
+      exportModalResponseBody.addEventListener("input", (event) => {
+        const input = event.target.closest(".table-edit-input");
+        if (!input || !exportPreviewState?.isEditing) {
+          return;
+        }
+
+        const rowIndex = Number(input.dataset.rowIndex);
+        const field = input.dataset.field || "";
+        updateEditableExportValue(Number.isNaN(rowIndex) ? null : rowIndex, field, input.value);
+      });
+
+      exportModalResponseBody.addEventListener("click", (event) => {
+        const sortButton = event.target.closest("[data-sort-field='id']");
+        if (sortButton && exportPreviewState?.type === "result") {
+          const nextDirection = exportPreviewState.sortDirection === "asc" ? "desc" : "asc";
+          sortExportPreviewRowsInState(nextDirection);
+          renderExportPreviewModal();
+          return;
+        }
+
+        const deleteButton = event.target.closest("[data-delete-row-index]");
+        if (!deleteButton || !exportPreviewState?.isEditing) {
+          return;
+        }
+
+        if (!window.confirm(t("exportModalDeleteRowConfirm"))) {
+          return;
+        }
+
+        const rowIndex = Number(deleteButton.dataset.deleteRowIndex);
+        if (Number.isNaN(rowIndex) || !Array.isArray(exportPreviewState.editedBody)) {
+          return;
+        }
+
+        const rowData = deepCloneValue(exportPreviewState.editedBody[rowIndex]);
+        if (!rowData || typeof rowData !== "object") {
+          return;
+        }
+
+        triggerDocAction("delete", {
+          useExportModal: true,
+          rowData,
+          rowDeleteIndex: rowIndex
+        });
+      });
+
+      settingsModal.addEventListener("click", (event) => {
+        if (event.target === settingsModal) {
+          closeSettingsModal();
+        }
+      });
+
+      chatForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        await runChatCommand();
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !chatModal.classList.contains("hidden")) {
+          closeChatModal();
+        }
+
+        if (event.key === "Escape" && !settingsModal.classList.contains("hidden")) {
+          closeSettingsModal();
+        }
+
+        if (event.key === "Escape" && !exportPreviewModal.classList.contains("hidden")) {
+          closeExportPreviewModal();
+        }
+      });
+
+      lightThemeButton.addEventListener("click", () => {
+        applyTheme("light");
+      });
+
+      darkThemeButton.addEventListener("click", () => {
+        applyTheme("dark");
+      });
+
+      thaiLanguageButton.addEventListener("click", () => {
+        applyLanguage("th");
+      });
+
+      englishLanguageButton.addEventListener("click", () => {
+        applyLanguage("en");
+      });
+
+      senderNameInput.addEventListener("input", persistSenderFields);
+      senderEmail.addEventListener("input", () => {
+        persistSenderFields();
+        renderUploadHistory();
+      });
+
+      settingsForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        saveSettingsButton.disabled = true;
+        setSettingsMessageState({ state: "loading", key: "savingSettings" });
+
+        try {
+          const response = await fetch("/settings/webhooks", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              webhookUrl: settingsWebhookUrl.value.trim(),
+              actionWebhookUrl: settingsActionWebhookUrl.value.trim(),
+              commandWebhookUrl: settingsCommandWebhookUrl.value.trim()
+            })
+          });
+
+          const result = await response.json();
+
+          if (!response.ok || !result.ok) {
+            throw new Error(result.message || t("failedSaveSettings"));
+          }
+
+          currentSettingsPayload = result;
+          renderSettingsStatus();
+          setSettingsMessageState({ state: "success", key: "settingsSaved" });
+        } catch (error) {
+          setSettingsMessageState({ state: "error", raw: error.message });
+        } finally {
+          saveSettingsButton.disabled = false;
+        }
+      });
+
+      fileInput.addEventListener("change", () => {
+        mergeSelectedFiles(Array.from(fileInput.files));
+      });
+
+      ["dragenter", "dragover"].forEach((eventName) => {
+        dropzone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          dropzone.classList.add("dragging");
+        });
+      });
+
+      ["dragleave", "drop"].forEach((eventName) => {
+        dropzone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          dropzone.classList.remove("dragging");
+        });
+      });
+
+      dropzone.addEventListener("drop", (event) => {
+        mergeSelectedFiles(Array.from(event.dataTransfer.files));
+      });
+
+      fileList.addEventListener("click", (event) => {
+        const removeButton = event.target.closest(".file-remove-button");
+        if (!removeButton) {
+          return;
+        }
+
+        const fileIndex = Number(removeButton.dataset.fileIndex);
+        if (Number.isNaN(fileIndex)) {
+          return;
+        }
+
+        selectedFiles = selectedFiles.filter((_, index) => index !== fileIndex);
+        syncFileInput();
+        renderFiles(selectedFiles);
+      });
+
+      checkButton.addEventListener("click", () => {
+        triggerDocAction("check");
+      });
+
+      exportButton.addEventListener("click", () => {
+        triggerDocAction("export", { useExportModal: true });
+      });
+
+      closeExportModalButton.addEventListener("click", () => {
+        closeExportPreviewModal();
+      });
+
+      editExportButton.addEventListener("click", () => {
+        if (!exportPreviewState || exportPreviewState.type !== "result") {
+          return;
+        }
+
+        if (!exportPreviewState.isEditing) {
+          exportPreviewState = {
+            ...exportPreviewState,
+            isEditing: true,
+            originalBody: deepCloneValue(exportPreviewState.result.webhookBody),
+            editedBody: deepCloneValue(exportPreviewState.result.webhookBody)
+          };
+          renderExportPreviewModal();
+          return;
+        }
+
+        triggerDocAction("edit", {
+          useExportModal: true,
+          editedData: deepCloneValue(exportPreviewState.editedBody)
+        });
+      });
+
+      cancelEditExportButton.addEventListener("click", () => {
+        if (!exportPreviewState || exportPreviewState.type !== "result") {
+          return;
+        }
+
+        exportPreviewState = {
+          ...exportPreviewState,
+          isEditing: false,
+          editedBody: deepCloneValue(exportPreviewState.result.webhookBody)
+        };
+        renderExportPreviewModal();
+      });
+
+      exportAndClearConfirmButton.addEventListener("click", () => {
+        triggerDocAction("exportandclear", {
+          useExportModal: true,
+          clearHistoryAfterSuccess: true
+        });
+      });
+
+      clearHistoryButton.addEventListener("click", () => {
+        triggerDocAction("clearhistory", {
+          clearHistoryAfterSuccess: true
+        });
+      });
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        if (!selectedFiles.length) {
+          statusState = {
+            type: "result",
+            isError: true,
+            result: {
+              ok: false,
+              messageKey: "noFilesSelectedError"
+            }
+          };
+          renderStatus();
+          return;
+        }
+
+        submitButton.disabled = true;
+        checkButton.disabled = true;
+        exportButton.disabled = true;
+        const sequentialItems = createSequentialUploadItems(selectedFiles);
+        statusState = {
+          type: "uploading-sequential",
+          items: sequentialItems,
+          startedAt: formatTimestamp()
+        };
+        renderStatus();
+
+        try {
+          const uploadFields = buildSharedUploadFields();
+          const fileResults = [];
+          const allWebhookResults = [];
+          let aggregateSuccessCount = 0;
+          let aggregateFailureCount = 0;
+          let aggregateOutboundFileCount = 0;
+          let hasError = false;
+
+          for (const [index, file] of selectedFiles.entries()) {
+            sequentialItems[index] = {
+              ...sequentialItems[index],
+              state: "uploading",
+              detail: t("sequentialUploadingDetail", {
+                name: file.name,
+                percent: "0%"
+              })
+            };
+            statusState = {
+              type: "uploading-sequential",
+              items: [...sequentialItems],
+              startedAt: statusState.startedAt
+            };
+            renderStatus();
+
+            try {
+              const uploadResponse = await uploadSingleFile(file, uploadFields, (progressState) => {
+                if (progressState.phase === "uploading") {
+                  sequentialItems[index] = {
+                    ...sequentialItems[index],
+                    state: "uploading",
+                    uploadPercent:
+                      progressState.percent === null ? sequentialItems[index].uploadPercent : progressState.percent,
+                    detail: t("sequentialUploadingDetail", {
+                      name: file.name,
+                      percent:
+                        progressState.percent === null
+                          ? "..."
+                          : `${progressState.percent}%`
+                    })
+                  };
+                } else if (progressState.phase === "processing") {
+                  sequentialItems[index] = {
+                    ...sequentialItems[index],
+                    state: "processing",
+                    uploadPercent: 100,
+                    detail: formatProcessingDetail(file.name, progressState.progress),
+                    progress: progressState.progress || null
+                  };
+                }
+
+                statusState = {
+                  type: "uploading-sequential",
+                  items: [...sequentialItems],
+                  startedAt: statusState.startedAt
+                };
+                renderStatus();
+              });
+
+              const serverResult = uploadResponse.result || {};
+              const outboundFileCount = serverResult.outboundFileCount ?? 0;
+              const successCount = serverResult.successCount ?? 0;
+              const failureCount = serverResult.failureCount ?? 0;
+              const fileOk = uploadResponse.ok && serverResult.ok !== false;
+              const detailMessage = fileOk
+                ? t("sequentialFileSuccessDetail", {
+                    successCount,
+                    outboundFileCount
+                  })
+                : t("sequentialFileErrorDetail", {
+                    message:
+                      serverResult.message ||
+                      serverResult.error ||
+                      t("uploadErrorDefault")
+                  });
+
+              aggregateSuccessCount += successCount;
+              aggregateFailureCount += failureCount;
+              aggregateOutboundFileCount += outboundFileCount;
+              if (Array.isArray(serverResult.results)) {
+                allWebhookResults.push(...serverResult.results);
+              }
+              if (!fileOk) {
+                hasError = true;
+              }
+
+              fileResults.push({
+                ok: fileOk,
+                fileIndex: index + 1,
+                originalName: file.name,
+                detailMessage,
+                successCount,
+                failureCount,
+                outboundFileCount,
+                webhookStatus: fileOk ? "OK" : serverResult.webhookStatus || "ERROR",
+                error: fileOk ? "" : serverResult.error || serverResult.message || ""
+              });
+
+              sequentialItems[index] = {
+                ...sequentialItems[index],
+                ok: fileOk,
+                state: fileOk ? "success" : "error",
+                detail: detailMessage,
+                progress: {
+                  phase: fileOk ? "completed" : "completed_with_errors",
+                  pageCount: serverResult.outboundFileCount ?? 0,
+                  sentPages: successCount + failureCount
+                },
+                successCount,
+                failureCount,
+                outboundFileCount
+              };
+            } catch (error) {
+              hasError = true;
+              aggregateFailureCount += 1;
+
+              const detailMessage = t("sequentialFileErrorDetail", {
+                message: error.message
+              });
+
+              fileResults.push({
+                ok: false,
+                fileIndex: index + 1,
+                originalName: file.name,
+                detailMessage,
+                successCount: 0,
+                failureCount: 1,
+                outboundFileCount: 0,
+                webhookStatus: "NETWORK_ERROR",
+                error: error.message
+              });
+
+              sequentialItems[index] = {
+                ...sequentialItems[index],
+                ok: false,
+                state: "error",
+                detail: detailMessage,
+                progress: sequentialItems[index].progress || null,
+                successCount: 0,
+                failureCount: 1,
+                outboundFileCount: 0
+              };
+            }
+
+            statusState = {
+              type: "uploading-sequential",
+              items: [...sequentialItems],
+              startedAt: statusState.startedAt
+            };
+            renderStatus();
+          }
+
+          statusState = {
+            type: "result",
+            isError: hasError,
+            result: {
+              ok: !hasError,
+              message: hasError
+                ? t("sequentialPartialFailureMessage")
+                : t("sequentialAllSuccessMessage"),
+              fileCount: selectedFiles.length,
+              outboundFileCount: aggregateOutboundFileCount,
+              successCount: aggregateSuccessCount,
+              failureCount: aggregateFailureCount,
+              fileResults,
+              results: allWebhookResults
+            }
+          };
+          renderStatus();
+
+          if (aggregateSuccessCount > 0) {
+            await loadUploadHistory();
+          }
+
+          if (hasError) {
+            return;
+          }
+
+          noteInput.value = "";
+          selectedFiles = [];
+          syncFileInput();
+          renderFiles(selectedFiles);
+        } catch (error) {
+          statusState = {
+            type: "result",
+            isError: true,
+            result: {
+              ok: false,
+              messageKey: "serverConnectionFailed",
+              results: [
+                {
+                  ok: false,
+                  originalName: t("networkRequestLabel"),
+                  error: error.message
+                }
+              ]
+            }
+          };
+          renderStatus();
+        } finally {
+          submitButton.disabled = false;
+          checkButton.disabled = false;
+          exportButton.disabled = false;
+        }
+      });
+
+      initializeTheme();
+      initializeLanguage();
+      initializeSenderFields();
+      loadSettings();
+      loadUploadHistory();
+    </script>
+  </body>
+</html>

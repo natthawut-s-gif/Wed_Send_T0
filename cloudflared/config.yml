@@ -1,0 +1,9 @@
+# Generated for Cloudflare Tunnel local management
+# Update cloudflared-settings.json or use manage_web_ui.py to edit these values.
+tunnel: '7e7b7832-d54a-4c0c-8f95-f329dc0a4765'
+credentials-file: 'C:\Users\natap\.cloudflared\7e7b7832-d54a-4c0c-8f95-f329dc0a4765.json'
+
+ingress:
+  - hostname: 'doc.docextractionspcnano.com'
+    service: 'http://localhost:3000'
+  - service: http_status:404

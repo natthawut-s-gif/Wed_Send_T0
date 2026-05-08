@@ -1,0 +1,11 @@
+{
+  "tunnel_name": "doc-extraction-tunnel",
+  "tunnel_id": "YOUR-TUNNEL-UUID",
+  "hostname": "doc.yourdomain.com",
+  "service_url": "http://localhost:3000",
+  "credentials_file": "C:\\Users\\YOUR-USER\\.cloudflared\\YOUR-TUNNEL-UUID.json",
+  "metrics_address": "127.0.0.1:20241",
+  "log_level": "info",
+  "protocol": "auto",
+  "executable_path": ""
+}

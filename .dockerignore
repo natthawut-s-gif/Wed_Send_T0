@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.git
+.gitignore
+.env
+.cloudflared*.log
+.cloudflared*.pid
+.upload_bridge.log
+.upload_bridge.pid
+_fix_blob_test

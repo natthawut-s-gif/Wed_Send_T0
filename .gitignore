@@ -1,0 +1,14 @@
+node_modules/
+.env
+__pycache__/
+*.pyc
+*.log
+*.pid
+.cloudflared*.log
+.cloudflared*.pid
+.upload_bridge.log
+.upload_bridge.pid
+webhook-settings.json
+cloudflared-settings.json
+upload-history.json
+_fix_blob_test/

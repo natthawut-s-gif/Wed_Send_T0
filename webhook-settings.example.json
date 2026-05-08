@@ -1,0 +1,5 @@
+{
+  "webhookUrl": "https://your-n8n-domain/webhook/upload-files",
+  "actionWebhookUrl": "https://your-n8n-domain/webhook/document-actions",
+  "commandWebhookUrl": "https://your-n8n-domain/webhook/commands"
+}
