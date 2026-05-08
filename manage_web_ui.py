@@ -325,7 +325,7 @@ class WebMonitorApp:
         self.update_button = ttk.Button(
             controls,
             text="Update Project",
-            command=lambda: self.run_action("Update project from Git", update_project),
+            command=lambda: self.run_action("Push project to Git", update_project),
         )
         self.update_button.pack(side="left", padx=(0, 8))
 

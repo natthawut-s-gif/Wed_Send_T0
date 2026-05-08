@@ -428,12 +428,8 @@ def update_project() -> int:
         return 1
 
     reset_update_log()
-    append_update_log("Starting project update.")
-    print("Starting project update...")
-
-    current_pid = read_pid()
-    was_running = bool(current_pid and process_is_running(current_pid))
-    append_update_log(f"Server running before update: {was_running}")
+    append_update_log("Starting Git publish.")
+    print("Starting Git publish...")
 
     dirty_check = subprocess.run(
         [git_executable, "status", "--porcelain"],
@@ -450,27 +446,34 @@ def update_project() -> int:
         print("Failed to inspect Git status.")
         return 1
 
-    if dirty_output:
-        append_update_log("Update aborted: working tree has local changes.")
-        append_update_log(dirty_output)
-        print("Update aborted: working tree has local changes.")
-        print(dirty_output)
-        return 1
+    branch_result = subprocess.run(
+        [git_executable, "branch", "--show-current"],
+        cwd=str(BASE_DIR),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    branch_name = (branch_result.stdout or "").strip() or "main"
+    append_update_log(f"Current branch: {branch_name}")
 
-    if was_running:
-        append_update_log("Stopping server before update.")
-        stop_result = stop_server()
-        append_update_log(f"Stop server result: {stop_result}")
-        if stop_result != 0:
-            print("Failed to stop server before update.")
-            return stop_result
+    commit_message = f"Update project {time.strftime('%Y-%m-%d %H:%M:%S')}"
 
     steps: list[tuple[str, list[str]]] = [
-        ("Fetch latest Git refs", [git_executable, "fetch", "--all", "--prune"]),
-        ("Pull latest code", [git_executable, "pull", "--ff-only"]),
-        ("Install Node packages", ["npm", "install"]),
-        ("Install Python packages", [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"]),
+        ("Stage local changes", [git_executable, "add", "-A"]),
     ]
+
+    if dirty_output:
+        append_update_log("Local changes detected.")
+        append_update_log(dirty_output)
+        steps.append(
+            ("Create Git commit", [git_executable, "commit", "-m", commit_message])
+        )
+    else:
+        append_update_log("No local changes detected. Skipping commit step.")
+
+    steps.append(
+        ("Push current branch", [git_executable, "push", "origin", branch_name])
+    )
 
     exit_code = 0
     for label, command in steps:
@@ -478,22 +481,14 @@ def update_project() -> int:
         if exit_code != 0:
             break
 
-    if was_running:
-        append_update_log("Starting server after update.")
-        start_result = start_server(open_browser=False)
-        append_update_log(f"Start server result: {start_result}")
-        if start_result != 0:
-            print("Project updated, but the server failed to start again.")
-            return start_result
-
     if exit_code == 0:
-        append_update_log("Project update completed successfully.")
-        print("Project update completed successfully.")
+        append_update_log("Git publish completed successfully.")
+        print("Git publish completed successfully.")
         print(f"Update log: {UPDATE_LOG_FILE}")
         return 0
 
-    append_update_log(f"Project update failed with exit code {exit_code}.")
-    print(f"Project update failed. Check log: {UPDATE_LOG_FILE}")
+    append_update_log(f"Git publish failed with exit code {exit_code}.")
+    print(f"Git publish failed. Check log: {UPDATE_LOG_FILE}")
     return exit_code
 
 
