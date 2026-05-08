@@ -30,6 +30,7 @@ PID_FILE = BASE_DIR / ".upload_bridge.pid"
 LOG_FILE = BASE_DIR / ".upload_bridge.log"
 UPDATE_LOG_FILE = BASE_DIR / ".project_update.log"
 ENV_FILE = BASE_DIR / ".env"
+NODE_MODULES_DIR = BASE_DIR / "node_modules"
 DEFAULT_PORT = 3000
 DEFAULT_HOST = "0.0.0.0"
 
@@ -39,6 +40,33 @@ def get_git_executable() -> str | None:
         shutil.which("git"),
         r"C:\Program Files\Git\cmd\git.exe",
         r"C:\Program Files\Git\bin\git.exe",
+    ]
+
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return str(candidate)
+
+    return None
+
+
+def get_node_executable() -> str | None:
+    candidates = [
+        shutil.which("node"),
+        r"C:\Program Files\nodejs\node.exe",
+    ]
+
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return str(candidate)
+
+    return None
+
+
+def get_npm_executable() -> str | None:
+    candidates = [
+        shutil.which("npm"),
+        shutil.which("npm.cmd"),
+        r"C:\Program Files\nodejs\npm.cmd",
     ]
 
     for candidate in candidates:
@@ -92,6 +120,38 @@ def run_update_command(label: str, command: list[str]) -> int:
 
     append_update_log(f"{label} exit code: {result.returncode}")
     return result.returncode
+
+
+def ensure_node_dependencies() -> int:
+    if NODE_MODULES_DIR.exists():
+        return 0
+
+    npm_executable = get_npm_executable()
+    if not npm_executable:
+        print("npm executable was not found. Install Node.js first.")
+        return 1
+
+    print("node_modules not found. Running npm install...")
+    result = subprocess.run(
+        [npm_executable, "install"],
+        cwd=str(BASE_DIR),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    stdout = (result.stdout or "").strip()
+    stderr = (result.stderr or "").strip()
+    if stdout:
+        print(stdout)
+    if stderr:
+        print(stderr)
+
+    if result.returncode != 0:
+        print("npm install failed.")
+        return result.returncode
+
+    return 0
 
 
 def read_env_port() -> int:
@@ -329,6 +389,15 @@ def print_status_snapshot() -> None:
 
 
 def start_server(open_browser: bool) -> int:
+    node_executable = get_node_executable()
+    if not node_executable:
+        print("Node.js was not found. Install Node.js 20+ first.")
+        return 1
+
+    install_result = ensure_node_dependencies()
+    if install_result != 0:
+        return install_result
+
     existing_pid = read_pid()
     if existing_pid and process_is_running(existing_pid):
         print(f"Server is already running with PID {existing_pid} at {app_url()}")
@@ -355,7 +424,7 @@ def start_server(open_browser: bool) -> int:
     else:
         popen_kwargs["start_new_session"] = True
 
-    process = subprocess.Popen(["node", "server.js"], **popen_kwargs)
+    process = subprocess.Popen([node_executable, "server.js"], **popen_kwargs)
     write_pid(process.pid)
 
     if not wait_for_health():

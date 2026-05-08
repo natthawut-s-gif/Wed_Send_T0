@@ -715,8 +715,15 @@ class WebMonitorApp:
 
     def _run_action_thread(self, label: str, action, args: tuple) -> None:
         buffer = io.StringIO()
-        with contextlib.redirect_stdout(buffer):
-            exit_code = action(*args)
+        try:
+            with contextlib.redirect_stdout(buffer):
+                exit_code = action(*args)
+        except Exception as error:  # noqa: BLE001
+            output = buffer.getvalue().strip()
+            summary = output or f"{label} failed."
+            summary = f"{summary}\nUnhandled error: {error}"
+            self.root.after(0, self._finish_action, summary, 1)
+            return
 
         output = buffer.getvalue().strip()
         summary = output or f"{label} finished with exit code {exit_code}."
