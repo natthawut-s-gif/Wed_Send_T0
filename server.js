@@ -27,9 +27,7 @@ const uploadHistoryFile = process.env.UPLOAD_HISTORY_FILE
   : path.join(dataDir, "upload-history.json");
 const defaultWebhookUrl = process.env.N8N_WEBHOOK_URL || "";
 const defaultExportDocWebhookUrl = process.env.EXPORT_DOC_WEBHOOK_URL || "";
-const defaultCommandWebhookUrl =
-  process.env.COMMAND_WEBHOOK_URL ||
-  "https://n8n.sahapat.com:5678/webhook/ocr_fj_project_web_command";
+const defaultCommandWebhookUrl = process.env.COMMAND_WEBHOOK_URL || "";
 const uploadHistoryLimit = Number(process.env.UPLOAD_HISTORY_LIMIT || 100);
 const maxFiles = Number(process.env.MAX_FILES || 10);
 const maxFileSizeMb = Number(process.env.MAX_FILE_SIZE_MB || 10);
