@@ -8,6 +8,7 @@ __pycache__/
 .cloudflared*.pid
 .upload_bridge.log
 .upload_bridge.pid
+.project_update.log
 webhook-settings.json
 cloudflared-settings.json
 upload-history.json

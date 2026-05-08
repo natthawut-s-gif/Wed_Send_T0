@@ -11,6 +11,7 @@ import urllib.error
 import urllib.request
 import webbrowser
 from pathlib import Path
+import shutil
 
 from cloudflared_manager import get_setup_commands
 from cloudflared_manager import print_quick_tunnel_status
@@ -27,9 +28,70 @@ from cloudflared_manager import write_config as write_tunnel_config
 BASE_DIR = Path(__file__).resolve().parent
 PID_FILE = BASE_DIR / ".upload_bridge.pid"
 LOG_FILE = BASE_DIR / ".upload_bridge.log"
+UPDATE_LOG_FILE = BASE_DIR / ".project_update.log"
 ENV_FILE = BASE_DIR / ".env"
 DEFAULT_PORT = 3000
 DEFAULT_HOST = "0.0.0.0"
+
+
+def get_git_executable() -> str | None:
+    candidates = [
+        shutil.which("git"),
+        r"C:\Program Files\Git\cmd\git.exe",
+        r"C:\Program Files\Git\bin\git.exe",
+    ]
+
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return str(candidate)
+
+    return None
+
+
+def append_update_log(message: str) -> None:
+    UPDATE_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    with UPDATE_LOG_FILE.open("a", encoding="utf-8") as handle:
+        handle.write(f"[{timestamp}] {message.rstrip()}\n")
+
+
+def reset_update_log() -> None:
+    UPDATE_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    UPDATE_LOG_FILE.write_text("", encoding="utf-8")
+
+
+def read_update_log_tail(max_lines: int = 160) -> str:
+    if not UPDATE_LOG_FILE.exists():
+        return ""
+
+    lines = UPDATE_LOG_FILE.read_text(encoding="utf-8", errors="replace").splitlines()
+    return "\n".join(lines[-max_lines:])
+
+
+def run_update_command(label: str, command: list[str]) -> int:
+    append_update_log(f"$ {' '.join(command)}")
+    print(f"{label}...")
+    append_update_log(f"{label}...")
+    result = subprocess.run(
+        command,
+        cwd=str(BASE_DIR),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    stdout = (result.stdout or "").strip()
+    stderr = (result.stderr or "").strip()
+
+    if stdout:
+        print(stdout)
+        append_update_log(stdout)
+    if stderr:
+        print(stderr)
+        append_update_log(stderr)
+
+    append_update_log(f"{label} exit code: {result.returncode}")
+    return result.returncode
 
 
 def read_env_port() -> int:
@@ -353,6 +415,88 @@ def restart_server(open_browser: bool) -> int:
     return start_server(open_browser=open_browser)
 
 
+def update_project() -> int:
+    git_executable = get_git_executable()
+    if not git_executable:
+        print("Git executable was not found.")
+        append_update_log("Git executable was not found.")
+        return 1
+
+    if not (BASE_DIR / ".git").exists():
+        print("This folder is not a Git repository.")
+        append_update_log("This folder is not a Git repository.")
+        return 1
+
+    reset_update_log()
+    append_update_log("Starting project update.")
+    print("Starting project update...")
+
+    current_pid = read_pid()
+    was_running = bool(current_pid and process_is_running(current_pid))
+    append_update_log(f"Server running before update: {was_running}")
+
+    dirty_check = subprocess.run(
+        [git_executable, "status", "--porcelain"],
+        cwd=str(BASE_DIR),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    dirty_output = (dirty_check.stdout or "").strip()
+    if dirty_check.returncode != 0:
+        append_update_log("Failed to inspect Git status.")
+        if dirty_check.stderr.strip():
+            append_update_log(dirty_check.stderr.strip())
+        print("Failed to inspect Git status.")
+        return 1
+
+    if dirty_output:
+        append_update_log("Update aborted: working tree has local changes.")
+        append_update_log(dirty_output)
+        print("Update aborted: working tree has local changes.")
+        print(dirty_output)
+        return 1
+
+    if was_running:
+        append_update_log("Stopping server before update.")
+        stop_result = stop_server()
+        append_update_log(f"Stop server result: {stop_result}")
+        if stop_result != 0:
+            print("Failed to stop server before update.")
+            return stop_result
+
+    steps: list[tuple[str, list[str]]] = [
+        ("Fetch latest Git refs", [git_executable, "fetch", "--all", "--prune"]),
+        ("Pull latest code", [git_executable, "pull", "--ff-only"]),
+        ("Install Node packages", ["npm", "install"]),
+        ("Install Python packages", [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"]),
+    ]
+
+    exit_code = 0
+    for label, command in steps:
+        exit_code = run_update_command(label, command)
+        if exit_code != 0:
+            break
+
+    if was_running:
+        append_update_log("Starting server after update.")
+        start_result = start_server(open_browser=False)
+        append_update_log(f"Start server result: {start_result}")
+        if start_result != 0:
+            print("Project updated, but the server failed to start again.")
+            return start_result
+
+    if exit_code == 0:
+        append_update_log("Project update completed successfully.")
+        print("Project update completed successfully.")
+        print(f"Update log: {UPDATE_LOG_FILE}")
+        return 0
+
+    append_update_log(f"Project update failed with exit code {exit_code}.")
+    print(f"Project update failed. Check log: {UPDATE_LOG_FILE}")
+    return exit_code
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Start or stop the local upload website."
@@ -373,6 +517,7 @@ def parse_args() -> argparse.Namespace:
             "quick-share-stop",
             "quick-share-restart",
             "quick-share-status",
+            "update-project",
         ],
         help="Action to run",
     )
@@ -418,6 +563,8 @@ def main() -> int:
     if args.command == "quick-share-status":
         print_quick_tunnel_status()
         return 0
+    if args.command == "update-project":
+        return update_project()
     return server_status()
 
 

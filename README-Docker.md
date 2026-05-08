@@ -37,6 +37,67 @@ On first start, the app will automatically create runtime files inside `./data`:
 http://localhost:3000
 ```
 
+## Server deployment from GitHub image
+
+Use this mode when you want the server to run from:
+
+```text
+https://github.com/natthawut-s-gif/Wed_Send_T0.git
+```
+
+and automatically update after new code is pushed to `main`.
+
+### How it works
+
+1. GitHub Actions builds and pushes:
+
+```text
+ghcr.io/natthawut-s-gif/wed_send_t0:latest
+```
+
+2. Your server runs `docker-compose.server.yml`
+3. `watchtower` checks for a newer image and restarts the app automatically
+
+### Server start
+
+1. Create `.env` if needed:
+
+```bash
+cp .env.example .env
+```
+
+2. Start from the published image:
+
+```bash
+docker compose -f docker-compose.server.yml up -d
+```
+
+3. Open:
+
+```text
+http://localhost:3000
+```
+
+### Auto update behavior
+
+- Push new code to `main`
+- GitHub Actions publishes a new `latest` image to GHCR
+- `watchtower` pulls the new image automatically
+- The container restarts with the updated code
+
+### Check server image deployment
+
+```bash
+docker compose -f docker-compose.server.yml ps
+docker compose -f docker-compose.server.yml logs -f
+```
+
+### Stop server image deployment
+
+```bash
+docker compose -f docker-compose.server.yml down
+```
+
 ## Update code
 
 If this project is deployed from a git clone:
