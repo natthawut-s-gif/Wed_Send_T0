@@ -16,8 +16,15 @@ const execFileAsync = promisify(execFile);
 
 const host = process.env.HOST || "0.0.0.0";
 const port = Number(process.env.PORT || 3000);
-const settingsFile = path.join(__dirname, "webhook-settings.json");
-const uploadHistoryFile = path.join(__dirname, "upload-history.json");
+const dataDir = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : __dirname;
+const settingsFile = process.env.WEBHOOK_SETTINGS_FILE
+  ? path.resolve(process.env.WEBHOOK_SETTINGS_FILE)
+  : path.join(dataDir, "webhook-settings.json");
+const uploadHistoryFile = process.env.UPLOAD_HISTORY_FILE
+  ? path.resolve(process.env.UPLOAD_HISTORY_FILE)
+  : path.join(dataDir, "upload-history.json");
 const defaultWebhookUrl = process.env.N8N_WEBHOOK_URL || "";
 const defaultExportDocWebhookUrl = process.env.EXPORT_DOC_WEBHOOK_URL || "";
 const defaultCommandWebhookUrl =
@@ -125,6 +132,10 @@ function getWebhookSettings() {
     actionWebhookUrl: currentExportDocWebhookUrl,
     commandWebhookUrl: currentCommandWebhookUrl
   };
+}
+
+async function ensureParentDirectory(filePath) {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
 }
 
 function setUploadProgress(uploadRequestId, patch) {
@@ -266,6 +277,7 @@ async function loadWebhookSettings() {
 
 async function saveWebhookSettings(payload) {
   const sanitized = sanitizeWebhookSettings(payload);
+  await ensureParentDirectory(settingsFile);
   await fs.writeFile(settingsFile, `${JSON.stringify(sanitized, null, 2)}\n`, "utf8");
   currentWebhookUrl = sanitized.webhookUrl;
   currentExportDocWebhookUrl = sanitized.actionWebhookUrl;
@@ -292,6 +304,7 @@ async function loadUploadHistory() {
 async function saveUploadHistory(history) {
   const sanitized = sanitizeUploadHistory(history);
   uploadHistory = sanitized;
+  await ensureParentDirectory(uploadHistoryFile);
   await fs.writeFile(uploadHistoryFile, `${JSON.stringify(sanitized, null, 2)}\n`, "utf8");
   return uploadHistory;
 }

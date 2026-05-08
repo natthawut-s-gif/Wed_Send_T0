@@ -12,3 +12,4 @@ webhook-settings.json
 cloudflared-settings.json
 upload-history.json
 _fix_blob_test/
+data/

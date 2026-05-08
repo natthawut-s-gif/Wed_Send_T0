@@ -12,3 +12,4 @@ __pycache__
 .upload_bridge.log
 .upload_bridge.pid
 _fix_blob_test
+data

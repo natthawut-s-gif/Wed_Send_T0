@@ -9,29 +9,27 @@ This project can run on Linux or Windows servers with Docker.
 
 ## First start
 
-1. Create these local runtime files:
+1. Optional: create `.env` from the example if you want to override defaults:
 
 ```bash
 cp .env.example .env
-cp webhook-settings.example.json webhook-settings.json
-cp upload-history.example.json upload-history.json
-```
-
-If you use a named Cloudflare tunnel:
-
-```bash
-cp cloudflared-settings.example.json cloudflared-settings.json
 ```
 
 2. Set at least:
    - `N8N_WEBHOOK_URL`
    - `EXPORT_DOC_WEBHOOK_URL` if you use document actions
    - `COMMAND_WEBHOOK_URL` if you use command chat
+   You can set them in `.env`, or pass them from the shell when running Docker Compose.
 3. Start the service:
 
 ```bash
 docker compose up -d --build
 ```
+
+On first start, the app will automatically create runtime files inside `./data`:
+
+- `data/webhook-settings.json`
+- `data/upload-history.json`
 
 4. Open:
 
@@ -69,9 +67,9 @@ docker compose down
 
 ## Persisted files
 
-These files stay on the host and are mounted into the container:
+These files stay on the host inside `./data` and are mounted into the container:
 
-- `webhook-settings.json`
-- `upload-history.json`
+- `data/webhook-settings.json`
+- `data/upload-history.json`
 
 That means webhook settings and upload history remain after container restarts.
