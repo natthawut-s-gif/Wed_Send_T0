@@ -4,7 +4,7 @@ import threading
 import tkinter as tk
 from collections import deque
 from datetime import datetime
-from tkinter import scrolledtext, ttk
+from tkinter import scrolledtext, simpledialog, ttk
 
 from cloudflared_manager import get_setup_commands
 from cloudflared_manager import get_quick_tunnel_snapshot
@@ -16,6 +16,7 @@ from manage_web import open_site
 from cloudflared_manager import open_quick_tunnel_url
 from manage_web import read_log_tail
 from manage_web import read_env_flag
+from manage_web import read_env_value
 from manage_web import read_update_log_tail
 from cloudflared_manager import open_public_url
 from cloudflared_manager import read_quick_tunnel_log_tail
@@ -195,6 +196,8 @@ class WebMonitorApp:
         self.root.minsize(1100, 760)
 
         self.show_update_project = read_env_flag("SHOW_UPDATE_PROJECT_BUTTON", default=False)
+        self.update_project_password = read_env_value("UPDATE_PROJECT_PASSWORD", "")
+        self.update_project_unlocked = False
         self.is_busy = False
         self.refresh_in_progress = False
         self.last_log_text = ""
@@ -294,6 +297,16 @@ class WebMonitorApp:
         controls = ttk.Frame(card, style="Card.TFrame")
         controls.pack(fill="x", pady=(0, 14))
 
+        self.update_unlock_button = None
+        if self.show_update_project:
+            self.update_unlock_button = ttk.Button(
+                controls,
+                text=" ",
+                width=2,
+                command=self.prompt_update_project_password,
+            )
+            self.update_unlock_button.pack(side="left", padx=(0, 8))
+
         self.start_button = ttk.Button(
             controls,
             text="Start",
@@ -331,13 +344,15 @@ class WebMonitorApp:
                 text="Update Project",
                 command=lambda: self.run_action("Push project to Git", update_project),
             )
-            self.update_button.pack(side="left", padx=(0, 8))
+            if self.update_project_unlocked:
+                self.update_button.pack(side="left", padx=(0, 8))
 
-        ttk.Button(
+        self.refresh_now_button = ttk.Button(
             controls,
             text="Refresh Now",
             command=self.request_refresh,
-        ).pack(side="left", padx=(0, 12))
+        )
+        self.refresh_now_button.pack(side="left", padx=(0, 12))
 
         ttk.Checkbutton(
             controls,
@@ -538,11 +553,11 @@ class WebMonitorApp:
         self.uploads_chart = MonitorChart(chart_grid, "Upload Counters")
         self.uploads_chart.grid(row=1, column=1, sticky="nsew", padx=(8, 0), pady=(8, 0))
 
-        panes = ttk.Panedwindow(card, orient="vertical")
-        panes.pack(fill="both", expand=True)
+        self.panes = ttk.Panedwindow(card, orient="vertical")
+        self.panes.pack(fill="both", expand=True)
 
-        activity_frame = ttk.Frame(panes, padding=6, style="Card.TFrame")
-        panes.add(activity_frame, weight=1)
+        activity_frame = ttk.Frame(self.panes, padding=6, style="Card.TFrame")
+        self.panes.add(activity_frame, weight=1)
         ttk.Label(activity_frame, text="Action Output", style="Value.TLabel").pack(anchor="w")
         self.activity_text = scrolledtext.ScrolledText(
             activity_frame,
@@ -556,16 +571,16 @@ class WebMonitorApp:
         self.activity_text.configure(state="disabled")
 
         self.update_log_text = None
+        self.update_log_frame = None
         if self.show_update_project:
-            update_log_frame = ttk.Frame(panes, padding=6, style="Card.TFrame")
-            panes.add(update_log_frame, weight=1)
-            update_log_header = ttk.Frame(update_log_frame, style="Card.TFrame")
+            self.update_log_frame = ttk.Frame(panes, padding=6, style="Card.TFrame")
+            update_log_header = ttk.Frame(self.update_log_frame, style="Card.TFrame")
             update_log_header.pack(fill="x")
             ttk.Label(update_log_header, text="Project Update Log", style="Value.TLabel").pack(side="left")
             ttk.Label(update_log_header, text=str(UPDATE_LOG_FILE), style="Body.TLabel").pack(side="right")
 
             self.update_log_text = scrolledtext.ScrolledText(
-                update_log_frame,
+                self.update_log_frame,
                 height=10,
                 wrap="none",
                 font=("Consolas", 10),
@@ -574,8 +589,11 @@ class WebMonitorApp:
             self.update_log_text.pack(fill="both", expand=True, pady=(6, 0))
             self.update_log_text.configure(state="disabled")
 
-        log_frame = ttk.Frame(panes, padding=6, style="Card.TFrame")
-        panes.add(log_frame, weight=2)
+            if self.update_project_unlocked:
+                self.panes.add(self.update_log_frame, weight=1)
+
+        log_frame = ttk.Frame(self.panes, padding=6, style="Card.TFrame")
+        self.panes.add(log_frame, weight=2)
         log_header = ttk.Frame(log_frame, style="Card.TFrame")
         log_header.pack(fill="x")
         ttk.Label(log_header, text="Recent Server Log", style="Value.TLabel").pack(side="left")
@@ -591,8 +609,8 @@ class WebMonitorApp:
         self.log_text.pack(fill="both", expand=True, pady=(6, 0))
         self.log_text.configure(state="disabled")
 
-        tunnel_log_frame = ttk.Frame(panes, padding=6, style="Card.TFrame")
-        panes.add(tunnel_log_frame, weight=2)
+        tunnel_log_frame = ttk.Frame(self.panes, padding=6, style="Card.TFrame")
+        self.panes.add(tunnel_log_frame, weight=2)
         tunnel_log_header = ttk.Frame(tunnel_log_frame, style="Card.TFrame")
         tunnel_log_header.pack(fill="x")
         ttk.Label(tunnel_log_header, text="Recent Tunnel Log", style="Value.TLabel").pack(side="left")
@@ -609,8 +627,8 @@ class WebMonitorApp:
         self.tunnel_log_text.pack(fill="both", expand=True, pady=(6, 0))
         self.tunnel_log_text.configure(state="disabled")
 
-        quick_tunnel_log_frame = ttk.Frame(panes, padding=6, style="Card.TFrame")
-        panes.add(quick_tunnel_log_frame, weight=1)
+        quick_tunnel_log_frame = ttk.Frame(self.panes, padding=6, style="Card.TFrame")
+        self.panes.add(quick_tunnel_log_frame, weight=1)
         quick_tunnel_log_header = ttk.Frame(quick_tunnel_log_frame, style="Card.TFrame")
         quick_tunnel_log_header.pack(fill="x")
         ttk.Label(quick_tunnel_log_header, text="Recent Quick Tunnel Log", style="Value.TLabel").pack(side="left")
@@ -683,6 +701,44 @@ class WebMonitorApp:
         self.activity_text.see("end")
         self.activity_text.configure(state="disabled")
 
+    def prompt_update_project_password(self) -> None:
+        if not self.show_update_project:
+            return
+        if self.update_project_unlocked:
+            self.append_activity("Update Project is already unlocked for this session.")
+            return
+        if not self.update_project_password:
+            self.append_activity("UPDATE_PROJECT_PASSWORD is not configured in .env.")
+            return
+
+        password = simpledialog.askstring(
+            "Unlock Update Project",
+            "Enter password",
+            parent=self.root,
+            show="*",
+        )
+        if password is None:
+            return
+        if password != self.update_project_password:
+            self.append_activity("Update Project password is incorrect.")
+            return
+
+        self.update_project_unlocked = True
+        self.append_activity("Update Project unlocked for this session.")
+        self.show_update_project_controls()
+
+    def show_update_project_controls(self) -> None:
+        if not self.show_update_project or not self.update_project_unlocked:
+            return
+
+        if self.update_button is not None and not self.update_button.winfo_manager():
+            self.update_button.pack(side="left", padx=(0, 8), before=self.refresh_now_button)
+
+        if self.update_log_frame is not None:
+            managed = any(str(child) == str(self.update_log_frame) for child in self.panes.panes())
+            if not managed:
+                self.panes.insert(1, self.update_log_frame, weight=1)
+
     def _tunnel_form_has_focus(self) -> bool:
         focused_widget = self.root.focus_get()
         return focused_widget in self.tunnel_entries
@@ -691,6 +747,7 @@ class WebMonitorApp:
         self.is_busy = busy
         state = "disabled" if busy else "normal"
         for button in (
+            self.update_unlock_button,
             self.start_button,
             self.stop_button,
             self.restart_button,
