@@ -35,6 +35,25 @@ DEFAULT_PORT = 3000
 DEFAULT_HOST = "0.0.0.0"
 
 
+def read_env_value(key_name: str, default: str = "") -> str:
+    if not ENV_FILE.exists():
+        return default
+
+    for line in ENV_FILE.read_text(encoding="utf-8").splitlines():
+        if not line or line.lstrip().startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        if key.strip() == key_name:
+            return value.strip() or default
+
+    return default
+
+
+def read_env_flag(key_name: str, default: bool = False) -> bool:
+    value = read_env_value(key_name, "1" if default else "0").strip().lower()
+    return value in {"1", "true", "yes", "on"}
+
+
 def get_git_executable() -> str | None:
     candidates = [
         shutil.which("git"),

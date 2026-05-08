@@ -10,10 +10,13 @@ from cloudflared_manager import get_setup_commands
 from cloudflared_manager import get_quick_tunnel_snapshot
 from cloudflared_manager import get_tunnel_snapshot
 from manage_web import LOG_FILE
+from manage_web import UPDATE_LOG_FILE
 from manage_web import get_status_snapshot
 from manage_web import open_site
 from cloudflared_manager import open_quick_tunnel_url
 from manage_web import read_log_tail
+from manage_web import read_env_flag
+from manage_web import read_update_log_tail
 from cloudflared_manager import open_public_url
 from cloudflared_manager import read_quick_tunnel_log_tail
 from cloudflared_manager import read_log_tail as read_tunnel_log_tail
@@ -27,6 +30,7 @@ from cloudflared_manager import stop_tunnel
 from manage_web import restart_server
 from manage_web import start_server
 from manage_web import stop_server
+from manage_web import update_project
 
 
 HISTORY_LIMIT = 60
@@ -190,9 +194,11 @@ class WebMonitorApp:
         self.root.geometry("1240x920")
         self.root.minsize(1100, 760)
 
+        self.show_update_project = read_env_flag("SHOW_UPDATE_PROJECT_BUTTON", default=False)
         self.is_busy = False
         self.refresh_in_progress = False
         self.last_log_text = ""
+        self.last_update_log_text = ""
         self.auto_refresh = tk.BooleanVar(value=True)
         self.open_browser_on_start = tk.BooleanVar(value=True)
 
@@ -317,6 +323,15 @@ class WebMonitorApp:
             ),
         )
         self.restart_button.pack(side="left", padx=(0, 8))
+
+        self.update_button = None
+        if self.show_update_project:
+            self.update_button = ttk.Button(
+                controls,
+                text="Update Project",
+                command=lambda: self.run_action("Push project to Git", update_project),
+            )
+            self.update_button.pack(side="left", padx=(0, 8))
 
         ttk.Button(
             controls,
@@ -540,6 +555,25 @@ class WebMonitorApp:
         self.activity_text.insert("1.0", "Ready.\n")
         self.activity_text.configure(state="disabled")
 
+        self.update_log_text = None
+        if self.show_update_project:
+            update_log_frame = ttk.Frame(panes, padding=6, style="Card.TFrame")
+            panes.add(update_log_frame, weight=1)
+            update_log_header = ttk.Frame(update_log_frame, style="Card.TFrame")
+            update_log_header.pack(fill="x")
+            ttk.Label(update_log_header, text="Project Update Log", style="Value.TLabel").pack(side="left")
+            ttk.Label(update_log_header, text=str(UPDATE_LOG_FILE), style="Body.TLabel").pack(side="right")
+
+            self.update_log_text = scrolledtext.ScrolledText(
+                update_log_frame,
+                height=10,
+                wrap="none",
+                font=("Consolas", 10),
+                bg="#fffdf8",
+            )
+            self.update_log_text.pack(fill="both", expand=True, pady=(6, 0))
+            self.update_log_text.configure(state="disabled")
+
         log_frame = ttk.Frame(panes, padding=6, style="Card.TFrame")
         panes.add(log_frame, weight=2)
         log_header = ttk.Frame(log_frame, style="Card.TFrame")
@@ -660,6 +694,7 @@ class WebMonitorApp:
             self.start_button,
             self.stop_button,
             self.restart_button,
+            self.update_button,
             self.tunnel_start_button,
             self.tunnel_stop_button,
             self.tunnel_restart_button,
@@ -668,7 +703,8 @@ class WebMonitorApp:
             self.quick_tunnel_restart_button,
             self.save_tunnel_settings_button,
         ):
-            button.configure(state=state)
+            if button is not None:
+                button.configure(state=state)
 
     def run_action(self, label: str, action, *args) -> None:
         if self.is_busy:
@@ -719,6 +755,11 @@ class WebMonitorApp:
         tunnel_snapshot = get_tunnel_snapshot()
         quick_tunnel_snapshot = get_quick_tunnel_snapshot()
         log_text = read_log_tail(180) or "(No log output yet.)"
+        update_log_text = (
+            read_update_log_tail(180) or "(No project update log yet.)"
+            if self.show_update_project
+            else ""
+        )
         tunnel_log_text = read_tunnel_log_tail(180) or "(No tunnel log output yet.)"
         quick_tunnel_log_text = read_quick_tunnel_log_tail(180) or "(No quick tunnel log output yet.)"
         self.root.after(
@@ -728,6 +769,7 @@ class WebMonitorApp:
             tunnel_snapshot,
             quick_tunnel_snapshot,
             log_text,
+            update_log_text,
             tunnel_log_text,
             quick_tunnel_log_text,
         )
@@ -738,6 +780,7 @@ class WebMonitorApp:
         tunnel_snapshot: dict,
         quick_tunnel_snapshot: dict,
         log_text: str,
+        update_log_text: str,
         tunnel_log_text: str,
         quick_tunnel_log_text: str,
     ) -> None:
@@ -826,6 +869,7 @@ class WebMonitorApp:
         ])
 
         self.refresh_log(log_text)
+        self.refresh_update_log(update_log_text)
         self.refresh_tunnel_log(tunnel_log_text)
         self.refresh_quick_tunnel_log(quick_tunnel_log_text)
 
@@ -910,6 +954,19 @@ class WebMonitorApp:
         self.log_text.insert("1.0", log_text)
         self.log_text.see("end")
         self.log_text.configure(state="disabled")
+
+    def refresh_update_log(self, log_text: str) -> None:
+        if not self.show_update_project or self.update_log_text is None:
+            return
+        if log_text == self.last_update_log_text:
+            return
+
+        self.last_update_log_text = log_text
+        self.update_log_text.configure(state="normal")
+        self.update_log_text.delete("1.0", "end")
+        self.update_log_text.insert("1.0", log_text)
+        self.update_log_text.see("end")
+        self.update_log_text.configure(state="disabled")
 
     def refresh_tunnel_commands(self, settings: dict | None = None) -> None:
         commands_text = "\n".join(get_setup_commands(settings))
