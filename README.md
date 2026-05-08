@@ -175,3 +175,117 @@ QUICK_TUNNEL_WAIT_SECONDS=600
 - ถ้าอัปโหลด JPG / PNG เข้าเว็บ ปลายทางจะได้รับภาพที่ผ่าน OCR preprocessing แล้ว
 - ถ้า webhook ของคุณตอบ status `4xx` หรือ `5xx` แอปนี้จะแสดง error กลับบนหน้าเว็บ
 - เอกสาร n8n ระบุว่า webhook มี max payload default `16MB` ถ้า self-host อาจปรับเพิ่มได้ด้วย `N8N_PAYLOAD_SIZE_MAX`
+
+## Docker Install And Run
+
+ถ้าต้องการรันโปรเจกต์นี้ด้วย Docker ให้ใช้ขั้นตอนนี้
+
+### Requirements
+
+- Docker Engine หรือ Docker Desktop
+- Docker Compose v2
+
+### 1. Clone Project
+
+```bash
+git clone https://github.com/natthawut-s-gif/Wed_Send_T0.git
+cd Wed_Send_T0
+```
+
+### 2. สร้างไฟล์ `.env`
+
+```bash
+cp .env.example .env
+```
+
+บน Windows:
+
+```powershell
+copy .env.example .env
+```
+
+จากนั้นแก้ค่าอย่างน้อย:
+
+```env
+N8N_WEBHOOK_URL=https://your-n8n-domain/webhook/upload-files
+EXPORT_DOC_WEBHOOK_URL=https://your-n8n-domain/webhook/export_doc_fj_project
+COMMAND_WEBHOOK_URL=https://your-n8n-domain/webhook/commands
+```
+
+### 3. Build และ Run
+
+```bash
+docker compose up -d --build
+```
+
+### 4. เปิดใช้งาน
+
+```text
+http://localhost:3000
+```
+
+### 5. ตรวจสอบสถานะ
+
+```bash
+docker compose ps
+docker compose logs -f
+```
+
+### 6. หยุดการทำงาน
+
+```bash
+docker compose down
+```
+
+### ข้อมูลที่ Docker จะสร้างให้เอง
+
+เมื่อเริ่มครั้งแรก ระบบจะสร้างไฟล์ในโฟลเดอร์ `data` อัตโนมัติ:
+
+- `data/webhook-settings.json`
+- `data/upload-history.json`
+
+ไฟล์เหล่านี้ใช้เก็บค่า webhook และประวัติอัปโหลด และจะยังอยู่แม้ container restart
+
+## Docker Update
+
+ถ้าคุณรันแบบ build จาก source code ในเครื่อง:
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+ถ้าต้องการ restart อย่างเดียว:
+
+```bash
+docker compose restart
+```
+
+## Docker Run From Published Image
+
+ถ้าต้องการให้ server รันจาก image ที่ build มาจาก GitHub repo นี้โดยตรง ให้ใช้:
+
+```bash
+docker compose -f docker-compose.server.yml up -d
+```
+
+ไฟล์นี้จะใช้ image:
+
+```text
+ghcr.io/natthawut-s-gif/wed_send_t0:latest
+```
+
+และถ้า image บน GitHub Container Registry ถูกอัปเดต `watchtower` จะช่วยดึง image ใหม่และ restart container ให้อัตโนมัติ
+
+ตรวจสอบ:
+
+```bash
+docker compose -f docker-compose.server.yml ps
+docker compose -f docker-compose.server.yml logs -f
+```
+
+หยุด:
+
+```bash
+docker compose -f docker-compose.server.yml down
+```
