@@ -14,6 +14,7 @@ from manage_web import UPDATE_LOG_FILE
 from manage_web import get_status_snapshot
 from manage_web import open_site
 from cloudflared_manager import open_quick_tunnel_url
+from manage_web import read_env_flag
 from manage_web import read_log_tail
 from manage_web import read_env_value
 from manage_web import read_update_log_tail
@@ -194,6 +195,7 @@ class WebMonitorApp:
         self.root.geometry("1240x920")
         self.root.minsize(1100, 760)
 
+        self.show_update_project = read_env_flag("SHOW_UPDATE_PROJECT_BUTTON", default=False)
         self.update_project_password = read_env_value("UPDATE_PROJECT_PASSWORD", "")
         self.update_project_unlocked = False
         self.is_busy = False
@@ -295,13 +297,15 @@ class WebMonitorApp:
         controls = ttk.Frame(card, style="Card.TFrame")
         controls.pack(fill="x", pady=(0, 14))
 
-        self.update_unlock_button = ttk.Button(
-            controls,
-            text=" ",
-            width=2,
-            command=self.prompt_update_project_password,
-        )
-        self.update_unlock_button.pack(side="left", padx=(0, 8))
+        self.update_unlock_button = None
+        if self.show_update_project:
+            self.update_unlock_button = ttk.Button(
+                controls,
+                text=" ",
+                width=2,
+                command=self.prompt_update_project_password,
+            )
+            self.update_unlock_button.pack(side="left", padx=(0, 8))
 
         self.start_button = ttk.Button(
             controls,
@@ -694,6 +698,8 @@ class WebMonitorApp:
         self.activity_text.configure(state="disabled")
 
     def prompt_update_project_password(self) -> None:
+        if not self.show_update_project:
+            return
         if self.update_project_unlocked:
             self.append_activity("Update Project is already unlocked for this session.")
             return
