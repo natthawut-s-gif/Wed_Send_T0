@@ -16,4 +16,5 @@ _fix_blob_test/
 data/
 build/
 dist/
-launcher\__pycache__/
+launcher/__pycache__/
+*.spec
