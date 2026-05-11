@@ -35,6 +35,19 @@ DEFAULT_PORT = 3000
 DEFAULT_HOST = "0.0.0.0"
 
 
+def hidden_subprocess_kwargs() -> dict:
+    if os.name != "nt":
+        return {}
+
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    startupinfo.wShowWindow = 0
+    return {
+        "creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        "startupinfo": startupinfo,
+    }
+
+
 def read_env_value(key_name: str, default: str = "") -> str:
     if not ENV_FILE.exists():
         return default
@@ -162,6 +175,7 @@ def run_update_command(label: str, command: list[str]) -> int:
         capture_output=True,
         text=True,
         check=False,
+        **hidden_subprocess_kwargs(),
     )
 
     stdout = (result.stdout or "").strip()
@@ -194,6 +208,7 @@ def ensure_node_dependencies() -> int:
         capture_output=True,
         text=True,
         check=False,
+        **hidden_subprocess_kwargs(),
     )
 
     stdout = (result.stdout or "").strip()
@@ -375,6 +390,7 @@ def process_is_running(pid: int) -> bool:
             capture_output=True,
             text=True,
             check=False,
+            **hidden_subprocess_kwargs(),
         )
         return str(pid) in result.stdout
 
@@ -404,6 +420,7 @@ def get_process_memory_mb(pid: int | None) -> float | None:
             capture_output=True,
             text=True,
             check=False,
+            **hidden_subprocess_kwargs(),
         )
 
         if result.returncode != 0 or not result.stdout.strip():
@@ -548,6 +565,7 @@ def start_server(open_browser: bool) -> int:
             | getattr(subprocess, "CREATE_NO_WINDOW", 0)
         )
         popen_kwargs["creationflags"] = creationflags
+        popen_kwargs["startupinfo"] = hidden_subprocess_kwargs().get("startupinfo")
     else:
         popen_kwargs["start_new_session"] = True
 
@@ -589,6 +607,7 @@ def stop_server() -> int:
             capture_output=True,
             text=True,
             check=False,
+            **hidden_subprocess_kwargs(),
         )
         if result.returncode != 0:
             print(result.stdout.strip() or result.stderr.strip() or "Failed to stop server.")
@@ -633,6 +652,7 @@ def update_project() -> int:
         capture_output=True,
         text=True,
         check=False,
+        **hidden_subprocess_kwargs(),
     )
     dirty_output = (dirty_check.stdout or "").strip()
     if dirty_check.returncode != 0:
@@ -648,6 +668,7 @@ def update_project() -> int:
         capture_output=True,
         text=True,
         check=False,
+        **hidden_subprocess_kwargs(),
     )
     branch_name = (branch_result.stdout or "").strip() or "main"
     append_update_log(f"Current branch: {branch_name}")
