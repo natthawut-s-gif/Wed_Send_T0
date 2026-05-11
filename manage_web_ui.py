@@ -15,7 +15,6 @@ from manage_web import get_status_snapshot
 from manage_web import open_site
 from cloudflared_manager import open_quick_tunnel_url
 from manage_web import read_log_tail
-from manage_web import read_env_flag
 from manage_web import read_env_value
 from manage_web import read_update_log_tail
 from cloudflared_manager import open_public_url
@@ -195,7 +194,6 @@ class WebMonitorApp:
         self.root.geometry("1240x920")
         self.root.minsize(1100, 760)
 
-        self.show_update_project = read_env_flag("SHOW_UPDATE_PROJECT_BUTTON", default=False)
         self.update_project_password = read_env_value("UPDATE_PROJECT_PASSWORD", "")
         self.update_project_unlocked = False
         self.is_busy = False
@@ -297,15 +295,13 @@ class WebMonitorApp:
         controls = ttk.Frame(card, style="Card.TFrame")
         controls.pack(fill="x", pady=(0, 14))
 
-        self.update_unlock_button = None
-        if self.show_update_project:
-            self.update_unlock_button = ttk.Button(
-                controls,
-                text=" ",
-                width=2,
-                command=self.prompt_update_project_password,
-            )
-            self.update_unlock_button.pack(side="left", padx=(0, 8))
+        self.update_unlock_button = ttk.Button(
+            controls,
+            text=" ",
+            width=2,
+            command=self.prompt_update_project_password,
+        )
+        self.update_unlock_button.pack(side="left", padx=(0, 8))
 
         self.start_button = ttk.Button(
             controls,
@@ -337,15 +333,13 @@ class WebMonitorApp:
         )
         self.restart_button.pack(side="left", padx=(0, 8))
 
-        self.update_button = None
-        if self.show_update_project:
-            self.update_button = ttk.Button(
-                controls,
-                text="Update Project",
-                command=lambda: self.run_action("Push project to Git", update_project),
-            )
-            if self.update_project_unlocked:
-                self.update_button.pack(side="left", padx=(0, 8))
+        self.update_button = ttk.Button(
+            controls,
+            text="Update Project",
+            command=lambda: self.run_action("Push project to Git", update_project),
+        )
+        if self.update_project_unlocked:
+            self.update_button.pack(side="left", padx=(0, 8))
 
         self.refresh_now_button = ttk.Button(
             controls,
@@ -571,26 +565,24 @@ class WebMonitorApp:
         self.activity_text.configure(state="disabled")
 
         self.update_log_text = None
-        self.update_log_frame = None
-        if self.show_update_project:
-            self.update_log_frame = ttk.Frame(self.panes, padding=6, style="Card.TFrame")
-            update_log_header = ttk.Frame(self.update_log_frame, style="Card.TFrame")
-            update_log_header.pack(fill="x")
-            ttk.Label(update_log_header, text="Project Update Log", style="Value.TLabel").pack(side="left")
-            ttk.Label(update_log_header, text=str(UPDATE_LOG_FILE), style="Body.TLabel").pack(side="right")
+        self.update_log_frame = ttk.Frame(self.panes, padding=6, style="Card.TFrame")
+        update_log_header = ttk.Frame(self.update_log_frame, style="Card.TFrame")
+        update_log_header.pack(fill="x")
+        ttk.Label(update_log_header, text="Project Update Log", style="Value.TLabel").pack(side="left")
+        ttk.Label(update_log_header, text=str(UPDATE_LOG_FILE), style="Body.TLabel").pack(side="right")
 
-            self.update_log_text = scrolledtext.ScrolledText(
-                self.update_log_frame,
-                height=10,
-                wrap="none",
-                font=("Consolas", 10),
-                bg="#fffdf8",
-            )
-            self.update_log_text.pack(fill="both", expand=True, pady=(6, 0))
-            self.update_log_text.configure(state="disabled")
+        self.update_log_text = scrolledtext.ScrolledText(
+            self.update_log_frame,
+            height=10,
+            wrap="none",
+            font=("Consolas", 10),
+            bg="#fffdf8",
+        )
+        self.update_log_text.pack(fill="both", expand=True, pady=(6, 0))
+        self.update_log_text.configure(state="disabled")
 
-            if self.update_project_unlocked:
-                self.panes.add(self.update_log_frame, weight=1)
+        if self.update_project_unlocked:
+            self.panes.add(self.update_log_frame, weight=1)
 
         log_frame = ttk.Frame(self.panes, padding=6, style="Card.TFrame")
         self.panes.add(log_frame, weight=2)
@@ -702,8 +694,6 @@ class WebMonitorApp:
         self.activity_text.configure(state="disabled")
 
     def prompt_update_project_password(self) -> None:
-        if not self.show_update_project:
-            return
         if self.update_project_unlocked:
             self.append_activity("Update Project is already unlocked for this session.")
             return
@@ -728,7 +718,7 @@ class WebMonitorApp:
         self.show_update_project_controls()
 
     def show_update_project_controls(self) -> None:
-        if not self.show_update_project or not self.update_project_unlocked:
+        if not self.update_project_unlocked:
             return
 
         if self.update_button is not None and not self.update_button.winfo_manager():
@@ -812,11 +802,7 @@ class WebMonitorApp:
         tunnel_snapshot = get_tunnel_snapshot()
         quick_tunnel_snapshot = get_quick_tunnel_snapshot()
         log_text = read_log_tail(180) or "(No log output yet.)"
-        update_log_text = (
-            read_update_log_tail(180) or "(No project update log yet.)"
-            if self.show_update_project
-            else ""
-        )
+        update_log_text = read_update_log_tail(180) or "(No project update log yet.)"
         tunnel_log_text = read_tunnel_log_tail(180) or "(No tunnel log output yet.)"
         quick_tunnel_log_text = read_quick_tunnel_log_tail(180) or "(No quick tunnel log output yet.)"
         self.root.after(
@@ -1013,7 +999,7 @@ class WebMonitorApp:
         self.log_text.configure(state="disabled")
 
     def refresh_update_log(self, log_text: str) -> None:
-        if not self.show_update_project or self.update_log_text is None:
+        if self.update_log_text is None:
             return
         if log_text == self.last_update_log_text:
             return
