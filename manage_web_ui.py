@@ -573,7 +573,7 @@ class WebMonitorApp:
         self.update_log_text = None
         self.update_log_frame = None
         if self.show_update_project:
-            self.update_log_frame = ttk.Frame(panes, padding=6, style="Card.TFrame")
+            self.update_log_frame = ttk.Frame(self.panes, padding=6, style="Card.TFrame")
             update_log_header = ttk.Frame(self.update_log_frame, style="Card.TFrame")
             update_log_header.pack(fill="x")
             ttk.Label(update_log_header, text="Project Update Log", style="Value.TLabel").pack(side="left")
