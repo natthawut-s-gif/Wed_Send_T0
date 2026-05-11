@@ -543,7 +543,10 @@ def start_server(open_browser: bool) -> int:
     }
 
     if os.name == "nt":
-        creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+        creationflags = (
+            getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+            | getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        )
         popen_kwargs["creationflags"] = creationflags
     else:
         popen_kwargs["start_new_session"] = True
