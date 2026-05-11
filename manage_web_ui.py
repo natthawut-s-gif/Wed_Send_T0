@@ -11,13 +11,17 @@ from cloudflared_manager import get_quick_tunnel_snapshot
 from cloudflared_manager import get_tunnel_snapshot
 from manage_web import LOG_FILE
 from manage_web import UPDATE_LOG_FILE
+from manage_web import find_next_available_port
+from manage_web import get_port_binding_status
 from manage_web import get_status_snapshot
 from manage_web import open_site
 from cloudflared_manager import open_quick_tunnel_url
+from manage_web import read_env_port
 from manage_web import read_env_flag
 from manage_web import read_log_tail
 from manage_web import read_env_value
 from manage_web import read_update_log_tail
+from manage_web import save_local_server_settings
 from cloudflared_manager import open_public_url
 from cloudflared_manager import read_quick_tunnel_log_tail
 from cloudflared_manager import read_log_tail as read_tunnel_log_tail
@@ -198,12 +202,16 @@ class WebMonitorApp:
         self.show_update_project = read_env_flag("SHOW_UPDATE_PROJECT_BUTTON", default=False)
         self.update_project_password = read_env_value("UPDATE_PROJECT_PASSWORD", "")
         self.update_project_unlocked = False
+        self.configured_port = read_env_port()
         self.is_busy = False
         self.refresh_in_progress = False
         self.last_log_text = ""
         self.last_update_log_text = ""
         self.auto_refresh = tk.BooleanVar(value=True)
         self.open_browser_on_start = tk.BooleanVar(value=True)
+        self.local_port_var = tk.StringVar(value=str(self.configured_port))
+        self.local_port_status_text = tk.StringVar(value="-")
+        self.local_port_preview_text = tk.StringVar(value=f"http://localhost:{self.configured_port}/")
 
         self.status_text = tk.StringVar(value="Checking...")
         self.pid_text = tk.StringVar(value="-")
@@ -240,6 +248,7 @@ class WebMonitorApp:
         self.last_tunnel_log_text = ""
         self.last_quick_tunnel_log_text = ""
         self.tunnel_entries: list[ttk.Entry] = []
+        self.local_port_entry: ttk.Entry | None = None
 
         self.latency_history: deque[float | None] = deque(maxlen=HISTORY_LIMIT)
         self.memory_history: deque[float | None] = deque(maxlen=HISTORY_LIMIT)
@@ -250,6 +259,7 @@ class WebMonitorApp:
         self.validation_history: deque[float | None] = deque(maxlen=HISTORY_LIMIT)
 
         self._configure_styles()
+        self.local_port_var.trace_add("write", self._on_local_port_changed)
         self._build_ui()
         self.request_refresh()
         self.schedule_refresh()
@@ -365,6 +375,49 @@ class WebMonitorApp:
             variable=self.open_browser_on_start,
             style="Body.TCheckbutton",
         ).pack(side="left")
+
+        local_server_card = ttk.Frame(card, padding=14, style="Card.TFrame")
+        local_server_card.pack(fill="x", pady=(0, 14))
+
+        ttk.Label(local_server_card, text="Local Server", style="Value.TLabel").pack(anchor="w")
+        ttk.Label(
+            local_server_card,
+            text=(
+                "Set the local web port here. If the port is already used, "
+                "Start will switch to the next free port automatically."
+            ),
+            style="Body.TLabel",
+        ).pack(anchor="w", pady=(6, 10))
+
+        local_server_controls = ttk.Frame(local_server_card, style="Card.TFrame")
+        local_server_controls.pack(fill="x", pady=(0, 8))
+
+        ttk.Label(local_server_controls, text="Local Port", style="Body.TLabel").pack(side="left")
+        self.local_port_entry = ttk.Entry(
+            local_server_controls,
+            textvariable=self.local_port_var,
+            width=10,
+        )
+        self.local_port_entry.pack(side="left", padx=(10, 8))
+        self.save_local_port_button = ttk.Button(
+            local_server_controls,
+            text="Save Port Settings",
+            command=self.save_local_port_settings_from_ui,
+        )
+        self.save_local_port_button.pack(side="left", padx=(0, 8))
+        self.use_next_local_port_button = ttk.Button(
+            local_server_controls,
+            text="Use Next Free Port",
+            command=self.use_next_free_port_from_ui,
+        )
+        self.use_next_local_port_button.pack(side="left")
+
+        local_server_status = ttk.Frame(local_server_card, style="Card.TFrame")
+        local_server_status.pack(fill="x")
+        local_server_status.columnconfigure(1, weight=1)
+        local_server_status.columnconfigure(3, weight=1)
+        self._add_status_row(local_server_status, 0, 0, "Preview URL", self.local_port_preview_text)
+        self._add_status_row(local_server_status, 0, 2, "Port Status", self.local_port_status_text)
 
         tunnel_card = ttk.Frame(card, padding=14, style="Card.TFrame")
         tunnel_card.pack(fill="x", pady=(0, 14))
@@ -689,6 +742,17 @@ class WebMonitorApp:
         )
         self.tunnel_entries.append(entry)
 
+    def _on_local_port_changed(self, *_args) -> None:
+        raw_value = self.local_port_var.get().strip()
+        if not raw_value:
+            self.local_port_preview_text.set("-")
+            return
+
+        if raw_value.isdigit():
+            self.local_port_preview_text.set(f"http://localhost:{raw_value}/")
+        else:
+            self.local_port_preview_text.set("Invalid port")
+
     def append_activity(self, message: str) -> None:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         text = f"[{timestamp}] {message.strip()}\n"
@@ -739,6 +803,10 @@ class WebMonitorApp:
         focused_widget = self.root.focus_get()
         return focused_widget in self.tunnel_entries
 
+    def _local_port_has_focus(self) -> bool:
+        focused_widget = self.root.focus_get()
+        return focused_widget == self.local_port_entry
+
     def set_busy(self, busy: bool) -> None:
         self.is_busy = busy
         state = "disabled" if busy else "normal"
@@ -748,6 +816,8 @@ class WebMonitorApp:
             self.stop_button,
             self.restart_button,
             self.update_button,
+            self.save_local_port_button,
+            self.use_next_local_port_button,
             self.tunnel_start_button,
             self.tunnel_stop_button,
             self.tunnel_restart_button,
@@ -848,10 +918,16 @@ class WebMonitorApp:
         validation_failures = stats.get("validationFailures", 0)
         total_finished = successes + failures
         success_rate = (successes / total_finished * 100) if total_finished else 0.0
+        configured_port = snapshot.get("port") or read_env_port()
+        port_status = snapshot.get("port_status") or {}
 
         self.status_text.set("Running" if snapshot["running"] else "Stopped")
         self.pid_text.set(str(snapshot["pid"] or "-"))
         self.url_text.set(snapshot["url"])
+        if not self._local_port_has_focus():
+            self.local_port_var.set(str(configured_port))
+        self.local_port_preview_text.set(f"http://localhost:{configured_port}/")
+        self.local_port_status_text.set(self._format_port_status(port_status, snapshot["running"]))
         share_urls = snapshot.get("share_urls") or []
         self.share_url_text.set(" | ".join(share_urls) if share_urls else "-")
 
@@ -993,6 +1069,16 @@ class WebMonitorApp:
     def _append_history(self, history: deque[float | None], value: float | None) -> None:
         history.append(value)
 
+    def _format_port_status(self, port_status: dict, running: bool) -> str:
+        if running and port_status.get("occupied_by_current_server"):
+            return "In use by current server"
+        if port_status.get("available"):
+            return "Available"
+        suggested_port = port_status.get("suggested_port")
+        if suggested_port:
+            return f"Busy | next free: {suggested_port}"
+        return "Busy"
+
     def refresh_log(self, log_text: str) -> None:
         if log_text == self.last_log_text:
             return
@@ -1045,6 +1131,37 @@ class WebMonitorApp:
         self.quick_tunnel_log_text.insert("1.0", log_text)
         self.quick_tunnel_log_text.see("end")
         self.quick_tunnel_log_text.configure(state="disabled")
+
+    def save_local_port_settings_from_ui(self) -> None:
+        try:
+            settings = save_local_server_settings(self.local_port_var.get())
+        except Exception as error:  # noqa: BLE001
+            self.append_activity(f"Saving local port failed: {error}")
+            return
+
+        port_status = get_port_binding_status(settings["port"])
+        self.local_port_status_text.set(self._format_port_status(port_status, running=False))
+        self.append_activity(
+            "Local port settings saved.\n"
+            f"Local URL: {settings['url']}\n"
+            "Restart the server to use the new port."
+        )
+        self.request_refresh()
+
+    def use_next_free_port_from_ui(self) -> None:
+        current_value = self.local_port_var.get().strip() or str(read_env_port())
+        try:
+            next_port = find_next_available_port(int(current_value) + 1)
+        except ValueError:
+            self.append_activity("Current local port is invalid.")
+            return
+
+        if not next_port:
+            self.append_activity("No free replacement port was found.")
+            return
+
+        self.local_port_var.set(str(next_port))
+        self.append_activity(f"Suggested next free port: {next_port}")
 
     def save_tunnel_settings_from_ui(self) -> None:
         try:

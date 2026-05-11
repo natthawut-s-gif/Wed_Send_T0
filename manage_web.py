@@ -54,6 +54,43 @@ def read_env_flag(key_name: str, default: bool = False) -> bool:
     return value in {"1", "true", "yes", "on"}
 
 
+def write_env_values(updates: dict[str, str]) -> None:
+    lines = ENV_FILE.read_text(encoding="utf-8").splitlines() if ENV_FILE.exists() else []
+    remaining_keys = list(updates.keys())
+    output_lines: list[str] = []
+
+    for line in lines:
+        if not line or line.lstrip().startswith("#") or "=" not in line:
+            output_lines.append(line)
+            continue
+
+        key, _value = line.split("=", 1)
+        normalized_key = key.strip()
+        if normalized_key in updates:
+            output_lines.append(f"{normalized_key}={updates[normalized_key]}")
+            if normalized_key in remaining_keys:
+                remaining_keys.remove(normalized_key)
+        else:
+            output_lines.append(line)
+
+    for key in remaining_keys:
+        output_lines.append(f"{key}={updates[key]}")
+
+    ENV_FILE.write_text(f"{os.linesep.join(output_lines).rstrip()}{os.linesep}", encoding="utf-8")
+
+
+def normalize_port(value: int | str) -> int:
+    try:
+        port = int(str(value).strip())
+    except (TypeError, ValueError) as error:
+        raise ValueError("Port must be a number.") from error
+
+    if not 1 <= port <= 65535:
+        raise ValueError("Port must be between 1 and 65535.")
+
+    return port
+
+
 def get_git_executable() -> str | None:
     candidates = [
         shutil.which("git"),
@@ -203,6 +240,52 @@ def read_env_host() -> str:
             return host or DEFAULT_HOST
 
     return DEFAULT_HOST
+
+
+def save_local_server_settings(port_value: int | str) -> dict:
+    port = normalize_port(port_value)
+    write_env_values({"PORT": str(port)})
+    return {
+        "port": port,
+        "host": read_env_host(),
+        "url": app_url(),
+    }
+
+
+def _can_bind_port(host: str, port: int) -> bool:
+    bind_host = host or DEFAULT_HOST
+    test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        test_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        test_socket.bind((bind_host, port))
+        return True
+    except OSError:
+        return False
+    finally:
+        test_socket.close()
+
+
+def find_next_available_port(start_port: int, host: str | None = None, attempts: int = 100) -> int | None:
+    bind_host = host or read_env_host()
+    port = normalize_port(start_port)
+    for candidate in range(port, min(port + attempts, 65535) + 1):
+        if _can_bind_port(bind_host, candidate):
+            return candidate
+    return None
+
+
+def get_port_binding_status(port: int | None = None, host: str | None = None) -> dict:
+    bind_host = host or read_env_host()
+    requested_port = normalize_port(port or read_env_port())
+    available = _can_bind_port(bind_host, requested_port)
+    suggested_port = requested_port if available else find_next_available_port(requested_port + 1, bind_host)
+    return {
+        "host": bind_host,
+        "port": requested_port,
+        "available": available,
+        "busy": not available,
+        "suggested_port": suggested_port,
+    }
 
 
 def app_url(hostname: str = "localhost") -> str:
@@ -361,6 +444,10 @@ def get_status_snapshot() -> dict:
         "error": "Server is stopped.",
     }
 
+    configured_port = read_env_port()
+    port_status = get_port_binding_status(configured_port)
+    port_status["occupied_by_current_server"] = bool(running and not port_status.get("available"))
+
     health_body = health.get("body") if isinstance(health.get("body"), dict) else {}
     share_urls = health_body.get("urls") if isinstance(health_body.get("urls"), list) else None
     if not share_urls:
@@ -371,6 +458,8 @@ def get_status_snapshot() -> dict:
     return {
         "running": running,
         "pid": pid,
+        "port": configured_port,
+        "port_status": port_status,
         "url": app_url(),
         "share_urls": share_urls,
         "preferred_url": preferred_url,
@@ -426,6 +515,22 @@ def start_server(open_browser: bool) -> int:
 
     if existing_pid and not process_is_running(existing_pid):
         clear_pid()
+
+    port_status = get_port_binding_status()
+    if port_status.get("busy"):
+        current_port = port_status["port"]
+        suggested_port = port_status.get("suggested_port")
+        if not suggested_port:
+            print(
+                f"Port {current_port} is already in use and no free replacement port was found."
+            )
+            return 1
+
+        save_local_server_settings(suggested_port)
+        print(
+            f"Port {current_port} is already in use. "
+            f"Switched to port {suggested_port} and saved to .env."
+        )
 
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     log_handle = LOG_FILE.open("a", encoding="utf-8")
