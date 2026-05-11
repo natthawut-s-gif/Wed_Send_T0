@@ -14,3 +14,6 @@ cloudflared-settings.json
 upload-history.json
 _fix_blob_test/
 data/
+build/
+dist/
+launcher\__pycache__/
