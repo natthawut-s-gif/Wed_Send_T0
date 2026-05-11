@@ -2,9 +2,11 @@ import contextlib
 import io
 import threading
 import tkinter as tk
+import tkinter.scrolledtext as scrolledtext
+import tkinter.simpledialog as simpledialog
 from collections import deque
 from datetime import datetime
-from tkinter import scrolledtext, simpledialog, ttk
+from tkinter import ttk
 
 from cloudflared_manager import get_setup_commands
 from cloudflared_manager import get_quick_tunnel_snapshot
