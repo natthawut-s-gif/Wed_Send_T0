@@ -95,6 +95,34 @@ def get_npm_executable() -> str | None:
     return None
 
 
+def get_python_executable() -> str | None:
+    candidates = [
+        shutil.which("python"),
+        r"C:\Program Files\Python313\python.exe",
+        r"C:\Program Files\Python312\python.exe",
+        r"C:\Program Files\Python311\python.exe",
+        "/usr/bin/python3",
+        "/usr/local/bin/python3",
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return str(candidate)
+    return None
+
+
+def get_pythonw_executable() -> str | None:
+    candidates = [
+        shutil.which("pythonw"),
+        r"C:\Program Files\Python313\pythonw.exe",
+        r"C:\Program Files\Python312\pythonw.exe",
+        r"C:\Program Files\Python311\pythonw.exe",
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return str(candidate)
+    return None
+
+
 def run_command(command: list[str], *, cwd: Path | None = None, allow_failure: bool = False) -> subprocess.CompletedProcess[str]:
     log(f"$ {' '.join(command)}")
     result = subprocess.run(
@@ -168,7 +196,9 @@ def ensure_runtime_env(repo_dir: Path) -> None:
     if not env_path.exists() and env_example.exists():
         env_path.write_text(env_example.read_text(encoding="utf-8"), encoding="utf-8")
 
-    python_command = str(launcher_path()) if is_frozen() else sys.executable
+    python_command = get_python_executable() if is_frozen() else sys.executable
+    if not python_command:
+        raise RuntimeError("Python was not found. Install Python 3 first.")
     write_env_values(env_path, {"PYTHON_COMMAND": python_command})
 
 
@@ -237,6 +267,20 @@ def run_python_script(script_path: Path, args: list[str]) -> int:
         show_error("Launcher Error", f"Script not found: {script_path}")
         return 1
 
+    if is_frozen():
+        python_executable = get_python_executable()
+        if not python_executable:
+            show_error("Launcher Error", "Python was not found. Install Python 3 first.")
+            return 1
+
+        command = [python_executable, str(script_path), *args]
+        result = subprocess.run(command, cwd=str(script_path.parent), capture_output=True, text=True, check=False)
+        if result.stdout:
+            sys.stdout.write(result.stdout)
+        if result.stderr:
+            sys.stderr.write(result.stderr)
+        return result.returncode
+
     original_argv = sys.argv[:]
     original_cwd = Path.cwd()
     sys.path.insert(0, str(script_path.parent))
@@ -253,7 +297,19 @@ def run_python_script(script_path: Path, args: list[str]) -> int:
 def run_runtime_ui(repo_dir: Path) -> int:
     ensure_runtime_env(repo_dir)
     ensure_node_dependencies(repo_dir)
-    return run_python_script(repo_dir / "manage_web_ui.py", [])
+    runtime_script = repo_dir / "manage_web_ui.py"
+
+    if is_frozen():
+        pythonw_executable = get_pythonw_executable() or get_python_executable()
+        if not pythonw_executable:
+            show_error("Launcher Error", "Python was not found. Install Python 3 first.")
+            return 1
+
+        log(f"Launching runtime UI with {pythonw_executable}")
+        subprocess.Popen([pythonw_executable, str(runtime_script)], cwd=str(repo_dir))
+        return 0
+
+    return run_python_script(runtime_script, [])
 
 
 def bootstrap_runtime_and_run() -> int:
