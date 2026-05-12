@@ -248,22 +248,28 @@ class WebMonitorApp:
         except tk.TclError:
             pass
 
-        self.root.configure(bg="#ece3d6")
-        style.configure("Shell.TFrame", background="#ece3d6")
-        style.configure("Card.TFrame", background="#fffaf4")
-        style.configure("Panel.TFrame", background="#f7efe4")
-        style.configure("Muted.TFrame", background="#f5ede2")
-        style.configure("Title.TLabel", background="#fffaf4", font=("Segoe UI", 22, "bold"))
-        style.configure("Section.TLabel", background="#fffaf4", foreground="#7e5b3b", font=("Segoe UI", 9, "bold"))
-        style.configure("Heading.TLabel", background="#fffaf4", foreground="#2b2118", font=("Segoe UI", 12, "bold"))
-        style.configure("Body.TLabel", background="#fffaf4", foreground="#5f5042", font=("Segoe UI", 10))
-        style.configure("Muted.TLabel", background="#fffaf4", foreground="#8b7867", font=("Segoe UI", 9))
-        style.configure("Value.TLabel", background="#fffaf4", foreground="#1f1711", font=("Segoe UI", 10, "bold"))
-        style.configure("BigValue.TLabel", background="#fffaf4", foreground="#1f1711", font=("Segoe UI", 14, "bold"))
-        style.configure("Body.TCheckbutton", background="#fffaf4", font=("Segoe UI", 10))
-        style.configure("Accent.TButton", font=("Segoe UI", 10, "bold"))
-        style.configure("Small.TButton", font=("Segoe UI", 9))
-        style.configure("TNotebook", background="#fffaf4", borderwidth=0)
+        self.root.configure(bg="#f3f4f6")
+        style.configure("Shell.TFrame", background="#f3f4f6")
+        style.configure("Card.TFrame", background="#ffffff", relief="solid", borderwidth=1)
+        style.configure("Panel.TFrame", background="#ffffff")
+        style.configure("Muted.TFrame", background="#ffffff", relief="solid", borderwidth=1)
+        style.configure("Title.TLabel", background="#ffffff", foreground="#111827", font=("Segoe UI", 22, "bold"))
+        style.configure("Section.TLabel", background="#ffffff", foreground="#9a6a2f", font=("Segoe UI", 9, "bold"))
+        style.configure("Heading.TLabel", background="#ffffff", foreground="#1f2937", font=("Segoe UI", 12, "bold"))
+        style.configure("Body.TLabel", background="#ffffff", foreground="#4b5563", font=("Segoe UI", 10))
+        style.configure("Muted.TLabel", background="#ffffff", foreground="#6b7280", font=("Segoe UI", 9))
+        style.configure("Value.TLabel", background="#ffffff", foreground="#111827", font=("Segoe UI", 10, "bold"))
+        style.configure("BigValue.TLabel", background="#ffffff", foreground="#111827", font=("Segoe UI", 14, "bold"))
+        style.configure("Body.TCheckbutton", background="#ffffff", font=("Segoe UI", 10))
+        style.configure("TButton", font=("Segoe UI", 10), padding=(10, 6), background="#ffffff")
+        style.configure("Accent.TButton", font=("Segoe UI", 10, "bold"), padding=(12, 7), background="#d97706", foreground="#ffffff")
+        style.map(
+            "Accent.TButton",
+            background=[("active", "#b45309"), ("pressed", "#92400e")],
+            foreground=[("disabled", "#f3f4f6"), ("!disabled", "#ffffff")],
+        )
+        style.configure("Small.TButton", font=("Segoe UI", 9), padding=(8, 5))
+        style.configure("TNotebook", background="#ffffff", borderwidth=0)
         style.configure("TNotebook.Tab", padding=(12, 8), font=("Segoe UI", 10, "bold"))
 
     def _build_ui(self) -> None:
@@ -668,13 +674,15 @@ class WebMonitorApp:
             padx=(0, 10),
             pady=4,
         )
-        ttk.Label(parent, textvariable=value_var, style="Value.TLabel").grid(
+        value_label = ttk.Label(parent, textvariable=value_var, style="Value.TLabel", justify="left", anchor="w", wraplength=360)
+        value_label.grid(
             row=row,
             column=column + 1,
-            sticky="w",
+            sticky="ew",
             padx=(0, 18),
             pady=4,
         )
+        parent.grid_columnconfigure(column + 1, weight=1)
 
     def _on_local_port_changed(self, *_args) -> None:
         raw_value = self.local_port_var.get().strip()
@@ -849,7 +857,7 @@ class WebMonitorApp:
         self.local_port_preview_text.set(f"http://localhost:{configured_port}/")
         self.local_port_status_text.set(self._format_port_status(port_status, snapshot["running"]))
         share_urls = snapshot.get("share_urls") or []
-        self.share_url_text.set(" | ".join(share_urls) if share_urls else "-")
+        self.share_url_text.set("\n".join(share_urls) if share_urls else "-")
 
         if health.get("reachable"):
             self.health_text.set(
