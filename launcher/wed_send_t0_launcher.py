@@ -1,18 +1,24 @@
 import hashlib
 import json
 import os
+import queue
 import runpy
 import shutil
 import subprocess
 import sys
+import threading
+import time
 import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox
+from tkinter import ttk
 
 
 APP_NAME = "Wed_Send_T0"
 REPO_URL = "https://github.com/natthawut-s-gif/Wed_Send_T0.git"
 REPO_BRANCH = "main"
+
+ACTIVE_SPLASH = None
 
 
 def is_frozen() -> bool:
@@ -52,14 +58,44 @@ def launcher_state_file() -> Path:
     return launcher_root() / "launcher-state.json"
 
 
+def hidden_subprocess_kwargs() -> dict:
+    if os.name != "nt":
+        return {}
+
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    startupinfo.wShowWindow = 0
+    return {
+        "startupinfo": startupinfo,
+        "creationflags": subprocess.CREATE_NO_WINDOW,
+    }
+
+
+def timestamped(message: str) -> str:
+    stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    return f"[{stamp}] {message.rstrip()}"
+
+
 def log(message: str) -> None:
+    line = timestamped(message)
     launcher_log_file().parent.mkdir(parents=True, exist_ok=True)
     with launcher_log_file().open("a", encoding="utf-8") as handle:
-        handle.write(f"{message.rstrip()}\n")
+        handle.write(f"{line}\n")
+    if ACTIVE_SPLASH is not None:
+        ACTIVE_SPLASH.post_log(line)
+
+
+def set_status(message: str) -> None:
+    log(message)
+    if ACTIVE_SPLASH is not None:
+        ACTIVE_SPLASH.post_status(message)
 
 
 def show_error(title: str, message: str) -> None:
     log(f"ERROR: {title}: {message}")
+    if ACTIVE_SPLASH is not None:
+        ACTIVE_SPLASH.post_finish(False, f"{title}\n\n{message}")
+        return
     try:
         root = tk.Tk()
         root.withdraw()
@@ -131,6 +167,7 @@ def run_command(command: list[str], *, cwd: Path | None = None, allow_failure: b
         capture_output=True,
         text=True,
         check=False,
+        **hidden_subprocess_kwargs(),
     )
     stdout = (result.stdout or "").strip()
     stderr = (result.stderr or "").strip()
@@ -191,10 +228,12 @@ def write_env_values(env_path: Path, updates: dict[str, str]) -> None:
 
 
 def ensure_runtime_env(repo_dir: Path) -> None:
+    set_status("Preparing local configuration")
     env_example = repo_dir / ".env.example"
     env_path = repo_dir / ".env"
     if not env_path.exists() and env_example.exists():
         env_path.write_text(env_example.read_text(encoding="utf-8"), encoding="utf-8")
+        log(f"Created {env_path.name} from .env.example")
 
     python_command = get_python_executable() if is_frozen() else sys.executable
     if not python_command:
@@ -202,13 +241,37 @@ def ensure_runtime_env(repo_dir: Path) -> None:
     write_env_values(env_path, {"PYTHON_COMMAND": python_command})
 
 
+def check_runtime_dependencies() -> None:
+    set_status("Checking dependencies")
+    python_executable = get_python_executable()
+    git_executable = get_git_executable()
+    npm_executable = get_npm_executable()
+
+    if not python_executable:
+        raise RuntimeError("Python was not found. Install Python 3 first.")
+    if not git_executable:
+        raise RuntimeError("Git was not found. Install Git first.")
+    if not npm_executable:
+        raise RuntimeError("npm was not found. Install Node.js first.")
+
+    log(f"Python: {python_executable}")
+    log(f"Git: {git_executable}")
+    log(f"npm: {npm_executable}")
+
+    run_command([python_executable, "--version"], allow_failure=True)
+    run_command([git_executable, "--version"], allow_failure=True)
+    run_command([npm_executable, "--version"], allow_failure=True)
+
+
 def update_runtime_repo(repo_dir: Path) -> None:
     git_executable = get_git_executable()
     if not git_executable:
         raise RuntimeError("Git was not found. Install Git first.")
 
+    set_status("Checking for updates from GitHub")
     if not (repo_dir / ".git").exists():
         repo_dir.parent.mkdir(parents=True, exist_ok=True)
+        set_status("Downloading runtime project")
         run_command(
             [
                 git_executable,
@@ -234,6 +297,7 @@ def update_runtime_repo(repo_dir: Path) -> None:
     ).stdout.strip()
 
     if local_head != remote_head:
+        set_status("Updating runtime project")
         run_command([git_executable, "checkout", REPO_BRANCH], cwd=repo_dir)
         run_command([git_executable, "reset", "--hard", "FETCH_HEAD"], cwd=repo_dir)
         log(f"Updated runtime repo: {local_head or '-'} -> {remote_head}")
@@ -244,8 +308,7 @@ def update_runtime_repo(repo_dir: Path) -> None:
 def ensure_node_dependencies(repo_dir: Path) -> None:
     npm_executable = get_npm_executable()
     if not npm_executable:
-        log("npm was not found. Skipping npm install.")
-        return
+        raise RuntimeError("npm was not found. Install Node.js first.")
 
     state = read_json_file(launcher_state_file())
     current_hash = package_lock_hash(repo_dir)
@@ -256,6 +319,7 @@ def ensure_node_dependencies(repo_dir: Path) -> None:
         log("npm dependencies already up to date.")
         return
 
+    set_status("Installing Node.js dependencies")
     run_command([npm_executable, "install", "--no-fund", "--no-audit"], cwd=repo_dir)
     state["package_lock_hash"] = current_hash
     write_json_file(launcher_state_file(), state)
@@ -274,7 +338,14 @@ def run_python_script(script_path: Path, args: list[str]) -> int:
             return 1
 
         command = [python_executable, str(script_path), *args]
-        result = subprocess.run(command, cwd=str(script_path.parent), capture_output=True, text=True, check=False)
+        result = subprocess.run(
+            command,
+            cwd=str(script_path.parent),
+            capture_output=True,
+            text=True,
+            check=False,
+            **hidden_subprocess_kwargs(),
+        )
         if result.stdout:
             sys.stdout.write(result.stdout)
         if result.stderr:
@@ -305,8 +376,13 @@ def run_runtime_ui(repo_dir: Path) -> int:
             show_error("Launcher Error", "Python was not found. Install Python 3 first.")
             return 1
 
+        set_status("Opening application")
         log(f"Launching runtime UI with {pythonw_executable}")
-        subprocess.Popen([pythonw_executable, str(runtime_script)], cwd=str(repo_dir))
+        subprocess.Popen(
+            [pythonw_executable, str(runtime_script)],
+            cwd=str(repo_dir),
+            **hidden_subprocess_kwargs(),
+        )
         return 0
 
     return run_python_script(runtime_script, [])
@@ -319,12 +395,14 @@ def bootstrap_runtime_and_run() -> int:
     log(f"Runtime repo: {repo_dir}")
 
     try:
+        check_runtime_dependencies()
         update_runtime_repo(repo_dir)
     except Exception as error:
         if not (repo_dir / "manage_web_ui.py").exists():
             show_error("Launcher Error", f"Unable to download runtime project.\n\n{error}")
             return 1
         log(f"Git update failed, using local runtime copy: {error}")
+        set_status("Git update failed, using last downloaded code")
 
     try:
         return run_runtime_ui(repo_dir)
@@ -333,11 +411,159 @@ def bootstrap_runtime_and_run() -> int:
         return 1
 
 
+class LauncherSplash:
+    def __init__(self) -> None:
+        self.root = tk.Tk()
+        self.root.title("Starting WedSendT0")
+        self.root.geometry("720x460")
+        self.root.minsize(680, 420)
+        self.root.configure(bg="#f4f1ea")
+
+        self.events: queue.Queue[tuple[str, str]] = queue.Queue()
+        self.result_code = 1
+
+        self.status_var = tk.StringVar(value="Preparing launcher")
+        self.footer_var = tk.StringVar(value=str(launcher_log_file()))
+
+        shell = ttk.Frame(self.root, padding=16)
+        shell.pack(fill="both", expand=True)
+
+        card = ttk.Frame(shell, padding=18)
+        card.pack(fill="both", expand=True)
+        card.columnconfigure(0, weight=1)
+        card.rowconfigure(3, weight=1)
+
+        ttk.Label(card, text="LAUNCHER", foreground="#9a6a2f", font=("Segoe UI", 9, "bold")).grid(
+            row=0,
+            column=0,
+            sticky="w",
+        )
+        ttk.Label(card, text="Starting WedSendT0", font=("Segoe UI", 20, "bold")).grid(
+            row=1,
+            column=0,
+            sticky="w",
+            pady=(4, 2),
+        )
+        ttk.Label(
+            card,
+            textvariable=self.status_var,
+            foreground="#4b5563",
+            font=("Segoe UI", 10),
+        ).grid(row=2, column=0, sticky="w", pady=(0, 12))
+
+        self.progress = ttk.Progressbar(card, mode="indeterminate")
+        self.progress.grid(row=3, column=0, sticky="ew")
+        self.progress.start(10)
+
+        log_card = ttk.Frame(card, padding=12)
+        log_card.grid(row=4, column=0, sticky="nsew", pady=(12, 0))
+        log_card.columnconfigure(0, weight=1)
+        log_card.rowconfigure(1, weight=1)
+        ttk.Label(log_card, text="Launcher Log", font=("Segoe UI", 11, "bold")).grid(row=0, column=0, sticky="w")
+
+        text_shell = ttk.Frame(log_card)
+        text_shell.grid(row=1, column=0, sticky="nsew", pady=(8, 0))
+        text_shell.columnconfigure(0, weight=1)
+        text_shell.rowconfigure(0, weight=1)
+        self.log_text = tk.Text(
+            text_shell,
+            height=16,
+            wrap="word",
+            bg="#fffdf8",
+            fg="#1f2937",
+            relief="flat",
+            borderwidth=0,
+            font=("Consolas", 10),
+        )
+        scroll = ttk.Scrollbar(text_shell, orient="vertical", command=self.log_text.yview)
+        self.log_text.configure(yscrollcommand=scroll.set)
+        self.log_text.grid(row=0, column=0, sticky="nsew")
+        scroll.grid(row=0, column=1, sticky="ns")
+        self.log_text.configure(state="disabled")
+
+        footer = ttk.Frame(card)
+        footer.grid(row=5, column=0, sticky="ew", pady=(12, 0))
+        footer.columnconfigure(0, weight=1)
+        ttk.Label(footer, textvariable=self.footer_var, foreground="#6b7280", font=("Segoe UI", 9)).grid(
+            row=0,
+            column=0,
+            sticky="w",
+        )
+        self.close_button = ttk.Button(footer, text="Close", command=self.root.destroy, state="disabled")
+        self.close_button.grid(row=0, column=1, sticky="e")
+
+        self.root.after(80, self._drain_events)
+        self.root.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _on_close(self) -> None:
+        self.root.destroy()
+
+    def post_log(self, line: str) -> None:
+        self.events.put(("log", line))
+
+    def post_status(self, message: str) -> None:
+        self.events.put(("status", message))
+
+    def post_finish(self, success: bool, message: str) -> None:
+        self.events.put(("finish_ok" if success else "finish_error", message))
+
+    def _append_log(self, line: str) -> None:
+        self.log_text.configure(state="normal")
+        self.log_text.insert("end", f"{line}\n")
+        self.log_text.see("end")
+        self.log_text.configure(state="disabled")
+
+    def _drain_events(self) -> None:
+        while True:
+            try:
+                event, payload = self.events.get_nowait()
+            except queue.Empty:
+                break
+
+            if event == "log":
+                self._append_log(payload)
+            elif event == "status":
+                self.status_var.set(payload)
+            elif event == "finish_ok":
+                self.result_code = 0
+                self.status_var.set(payload)
+                self.progress.stop()
+                self.root.after(500, self.root.destroy)
+            elif event == "finish_error":
+                self.result_code = 1
+                self.status_var.set("Launcher failed")
+                self.progress.stop()
+                self._append_log(payload)
+                self.close_button.configure(state="normal")
+
+        if self.root.winfo_exists():
+            self.root.after(80, self._drain_events)
+
+    def start(self) -> int:
+        worker = threading.Thread(target=self._worker, daemon=True)
+        worker.start()
+        self.root.mainloop()
+        return self.result_code
+
+    def _worker(self) -> None:
+        exit_code = bootstrap_runtime_and_run()
+        if exit_code == 0:
+            self.post_finish(True, "Runtime application started.")
+        else:
+            self.post_finish(False, "Unable to start the runtime application. Review the launcher log.")
+
+
 def main() -> int:
     if len(sys.argv) > 1 and sys.argv[1].lower().endswith(".py"):
         return run_python_script(Path(sys.argv[1]), sys.argv[2:])
 
-    return bootstrap_runtime_and_run()
+    global ACTIVE_SPLASH
+    splash = LauncherSplash()
+    ACTIVE_SPLASH = splash
+    try:
+        return splash.start()
+    finally:
+        ACTIVE_SPLASH = None
 
 
 if __name__ == "__main__":
