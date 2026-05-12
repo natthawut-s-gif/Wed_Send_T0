@@ -1,6 +1,6 @@
 {
   "name": "n8n-upload-webhook-bridge",
-  "version": "1.0.46",
+  "version": "1.0.47",
   "description": "Public upload page that forwards multiple files to an n8n webhook",
   "main": "server.js",
   "scripts": {

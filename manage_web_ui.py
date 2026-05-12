@@ -8,9 +8,7 @@ from collections import deque
 from datetime import datetime
 from tkinter import ttk
 
-from cloudflared_manager import get_setup_commands
 from cloudflared_manager import get_quick_tunnel_snapshot
-from cloudflared_manager import get_tunnel_snapshot
 from manage_web import LOG_FILE
 from manage_web import UPDATE_LOG_FILE
 from manage_web import find_next_available_port
@@ -24,16 +22,10 @@ from manage_web import read_log_tail
 from manage_web import read_env_value
 from manage_web import read_update_log_tail
 from manage_web import save_local_server_settings
-from cloudflared_manager import open_public_url
 from cloudflared_manager import read_quick_tunnel_log_tail
-from cloudflared_manager import read_log_tail as read_tunnel_log_tail
 from cloudflared_manager import restart_quick_tunnel
-from cloudflared_manager import restart_tunnel
-from cloudflared_manager import save_settings as save_tunnel_settings
 from cloudflared_manager import start_quick_tunnel
-from cloudflared_manager import start_tunnel
 from cloudflared_manager import stop_quick_tunnel
-from cloudflared_manager import stop_tunnel
 from manage_web import restart_server
 from manage_web import start_server
 from manage_web import stop_server
@@ -229,27 +221,10 @@ class WebMonitorApp:
         self.success_rate_text = tk.StringVar(value="-")
         self.webhook_status_text = tk.StringVar(value="-")
         self.log_size_text = tk.StringVar(value="-")
-        self.tunnel_status_text = tk.StringVar(value="-")
-        self.tunnel_pid_text = tk.StringVar(value="-")
-        self.tunnel_public_url_text = tk.StringVar(value="-")
         self.quick_tunnel_status_text = tk.StringVar(value="-")
         self.quick_tunnel_pid_text = tk.StringVar(value="-")
         self.quick_tunnel_url_text = tk.StringVar(value="-")
-        self.tunnel_mode_text = tk.StringVar(value="-")
-        self.tunnel_metrics_text = tk.StringVar(value="-")
-        self.tunnel_config_text = tk.StringVar(value="-")
-        self.tunnel_executable_text = tk.StringVar(value="-")
-        self.tunnel_hostname_var = tk.StringVar(value="")
-        self.tunnel_id_var = tk.StringVar(value="")
-        self.tunnel_name_var = tk.StringVar(value="")
-        self.tunnel_credentials_var = tk.StringVar(value="")
-        self.tunnel_service_var = tk.StringVar(value="")
-        self.tunnel_metrics_var = tk.StringVar(value="")
-        self.tunnel_executable_var = tk.StringVar(value="")
-        self.tunnel_protocol_var = tk.StringVar(value="")
-        self.last_tunnel_log_text = ""
         self.last_quick_tunnel_log_text = ""
-        self.tunnel_entries: list[ttk.Entry] = []
         self.local_port_entry: ttk.Entry | None = None
 
         self.latency_history: deque[float | None] = deque(maxlen=HISTORY_LIMIT)
@@ -421,59 +396,6 @@ class WebMonitorApp:
         self._add_status_row(local_server_status, 0, 0, "Preview URL", self.local_port_preview_text)
         self._add_status_row(local_server_status, 0, 2, "Port Status", self.local_port_status_text)
 
-        tunnel_card = ttk.Frame(card, padding=14, style="Card.TFrame")
-        tunnel_card.pack(fill="x", pady=(0, 14))
-
-        tunnel_header = ttk.Frame(tunnel_card, style="Card.TFrame")
-        tunnel_header.pack(fill="x")
-        ttk.Label(tunnel_header, text="Cloudflare Tunnel", style="Value.TLabel").pack(side="left")
-        ttk.Button(
-            tunnel_header,
-            text="Open Public URL",
-            command=open_public_url,
-        ).pack(side="right")
-
-        ttk.Label(
-            tunnel_card,
-            text=(
-                "Manage a real public hostname such as doc.yourdomain.com. "
-                "Update the fields below, save, then start the tunnel."
-            ),
-            style="Body.TLabel",
-        ).pack(anchor="w", pady=(6, 10))
-
-        tunnel_controls = ttk.Frame(tunnel_card, style="Card.TFrame")
-        tunnel_controls.pack(fill="x", pady=(0, 10))
-
-        self.tunnel_start_button = ttk.Button(
-            tunnel_controls,
-            text="Start Tunnel",
-            command=lambda: self.run_action("Start Cloudflare Tunnel", start_tunnel),
-            style="Accent.TButton",
-        )
-        self.tunnel_start_button.pack(side="left", padx=(0, 8))
-
-        self.tunnel_stop_button = ttk.Button(
-            tunnel_controls,
-            text="Stop Tunnel",
-            command=lambda: self.run_action("Stop Cloudflare Tunnel", stop_tunnel),
-        )
-        self.tunnel_stop_button.pack(side="left", padx=(0, 8))
-
-        self.tunnel_restart_button = ttk.Button(
-            tunnel_controls,
-            text="Restart Tunnel",
-            command=lambda: self.run_action("Restart Cloudflare Tunnel", restart_tunnel),
-        )
-        self.tunnel_restart_button.pack(side="left", padx=(0, 8))
-
-        self.save_tunnel_settings_button = ttk.Button(
-            tunnel_controls,
-            text="Save Tunnel Settings",
-            command=self.save_tunnel_settings_from_ui,
-        )
-        self.save_tunnel_settings_button.pack(side="left")
-
         quick_tunnel_card = ttk.Frame(card, padding=14, style="Card.TFrame")
         quick_tunnel_card.pack(fill="x", pady=(0, 14))
 
@@ -528,33 +450,6 @@ class WebMonitorApp:
         self._add_status_row(quick_status_grid, 0, 2, "Quick PID", self.quick_tunnel_pid_text)
         self._add_status_row(quick_status_grid, 1, 0, "Quick URL", self.quick_tunnel_url_text)
 
-        tunnel_form = ttk.Frame(tunnel_card, style="Card.TFrame")
-        tunnel_form.pack(fill="x")
-        tunnel_form.columnconfigure(1, weight=1)
-        tunnel_form.columnconfigure(3, weight=1)
-
-        self._add_entry_row(tunnel_form, 0, 0, "Hostname", self.tunnel_hostname_var)
-        self._add_entry_row(tunnel_form, 0, 2, "Tunnel ID", self.tunnel_id_var)
-        self._add_entry_row(tunnel_form, 1, 0, "Tunnel Name", self.tunnel_name_var)
-        self._add_entry_row(tunnel_form, 1, 2, "Protocol", self.tunnel_protocol_var)
-        self._add_entry_row(tunnel_form, 2, 0, "Service URL", self.tunnel_service_var)
-        self._add_entry_row(tunnel_form, 2, 2, "Metrics", self.tunnel_metrics_var)
-        self._add_entry_row(tunnel_form, 3, 0, "Credentials File", self.tunnel_credentials_var)
-        self._add_entry_row(tunnel_form, 3, 2, "Executable Path", self.tunnel_executable_var)
-
-        setup_frame = ttk.Frame(tunnel_card, style="Card.TFrame")
-        setup_frame.pack(fill="both", expand=True, pady=(10, 0))
-        ttk.Label(setup_frame, text="Tunnel Setup Commands", style="Value.TLabel").pack(anchor="w")
-        self.tunnel_commands_text = scrolledtext.ScrolledText(
-            setup_frame,
-            height=5,
-            wrap="word",
-            font=("Consolas", 10),
-            bg="#fffdf8",
-        )
-        self.tunnel_commands_text.pack(fill="both", expand=True, pady=(6, 0))
-        self.tunnel_commands_text.configure(state="disabled")
-
         status_grid = ttk.Frame(card, style="Card.TFrame")
         status_grid.pack(fill="x", pady=(0, 14))
         status_grid.columnconfigure(1, weight=1)
@@ -572,15 +467,8 @@ class WebMonitorApp:
         self._add_status_row(status_grid, 4, 2, "Uploads", self.uploads_text)
         self._add_status_row(status_grid, 5, 0, "Success Rate", self.success_rate_text)
         self._add_status_row(status_grid, 5, 2, "Limits", self.limits_text)
-        self._add_status_row(status_grid, 6, 0, "Tunnel Mode", self.tunnel_mode_text)
-        self._add_status_row(status_grid, 6, 2, "Tunnel", self.tunnel_status_text)
-        self._add_status_row(status_grid, 7, 0, "Tunnel PID", self.tunnel_pid_text)
-        self._add_status_row(status_grid, 7, 2, "Public URL", self.tunnel_public_url_text)
-        self._add_status_row(status_grid, 8, 0, "Tunnel Metrics", self.tunnel_metrics_text)
-        self._add_status_row(status_grid, 8, 2, "Tunnel Config", self.tunnel_config_text)
-        self._add_status_row(status_grid, 9, 0, "Tunnel Executable", self.tunnel_executable_text)
-        self._add_status_row(status_grid, 9, 2, "Log Size", self.log_size_text)
-        self._add_status_row(status_grid, 10, 0, "Updated", self.updated_text)
+        self._add_status_row(status_grid, 6, 0, "Log Size", self.log_size_text)
+        self._add_status_row(status_grid, 6, 2, "Updated", self.updated_text)
 
         chart_grid = ttk.Frame(card, style="Card.TFrame")
         chart_grid.pack(fill="both", expand=False, pady=(0, 14))
@@ -660,24 +548,6 @@ class WebMonitorApp:
         self.log_text.pack(fill="both", expand=True, pady=(6, 0))
         self.log_text.configure(state="disabled")
 
-        tunnel_log_frame = ttk.Frame(self.panes, padding=6, style="Card.TFrame")
-        self.panes.add(tunnel_log_frame, weight=2)
-        tunnel_log_header = ttk.Frame(tunnel_log_frame, style="Card.TFrame")
-        tunnel_log_header.pack(fill="x")
-        ttk.Label(tunnel_log_header, text="Recent Tunnel Log", style="Value.TLabel").pack(side="left")
-        self.tunnel_log_path_label = ttk.Label(tunnel_log_header, text="-", style="Body.TLabel")
-        self.tunnel_log_path_label.pack(side="right")
-
-        self.tunnel_log_text = scrolledtext.ScrolledText(
-            tunnel_log_frame,
-            height=12,
-            wrap="none",
-            font=("Consolas", 10),
-            bg="#fffdf8",
-        )
-        self.tunnel_log_text.pack(fill="both", expand=True, pady=(6, 0))
-        self.tunnel_log_text.configure(state="disabled")
-
         quick_tunnel_log_frame = ttk.Frame(self.panes, padding=6, style="Card.TFrame")
         self.panes.add(quick_tunnel_log_frame, weight=1)
         quick_tunnel_log_header = ttk.Frame(quick_tunnel_log_frame, style="Card.TFrame")
@@ -718,31 +588,6 @@ class WebMonitorApp:
             padx=(0, 18),
             pady=4,
         )
-
-    def _add_entry_row(
-        self,
-        parent: ttk.Frame,
-        row: int,
-        column: int,
-        label_text: str,
-        variable: tk.StringVar,
-    ) -> None:
-        ttk.Label(parent, text=label_text, style="Body.TLabel").grid(
-            row=row,
-            column=column,
-            sticky="w",
-            padx=(0, 10),
-            pady=4,
-        )
-        entry = ttk.Entry(parent, textvariable=variable)
-        entry.grid(
-            row=row,
-            column=column + 1,
-            sticky="ew",
-            padx=(0, 18),
-            pady=4,
-        )
-        self.tunnel_entries.append(entry)
 
     def _on_local_port_changed(self, *_args) -> None:
         raw_value = self.local_port_var.get().strip()
@@ -801,10 +646,6 @@ class WebMonitorApp:
             if not managed:
                 self.panes.insert(1, self.update_log_frame, weight=1)
 
-    def _tunnel_form_has_focus(self) -> bool:
-        focused_widget = self.root.focus_get()
-        return focused_widget in self.tunnel_entries
-
     def _local_port_has_focus(self) -> bool:
         focused_widget = self.root.focus_get()
         return focused_widget == self.local_port_entry
@@ -820,13 +661,9 @@ class WebMonitorApp:
             self.update_button,
             self.save_local_port_button,
             self.use_next_local_port_button,
-            self.tunnel_start_button,
-            self.tunnel_stop_button,
-            self.tunnel_restart_button,
             self.quick_tunnel_start_button,
             self.quick_tunnel_stop_button,
             self.quick_tunnel_restart_button,
-            self.save_tunnel_settings_button,
         ):
             if button is not None:
                 button.configure(state=state)
@@ -877,32 +714,26 @@ class WebMonitorApp:
 
     def _refresh_thread(self) -> None:
         snapshot = get_status_snapshot()
-        tunnel_snapshot = get_tunnel_snapshot()
         quick_tunnel_snapshot = get_quick_tunnel_snapshot()
         log_text = read_log_tail(180) or "(No log output yet.)"
         update_log_text = read_update_log_tail(180) or "(No project update log yet.)"
-        tunnel_log_text = read_tunnel_log_tail(180) or "(No tunnel log output yet.)"
         quick_tunnel_log_text = read_quick_tunnel_log_tail(180) or "(No quick tunnel log output yet.)"
         self.root.after(
             0,
             self._apply_snapshot,
             snapshot,
-            tunnel_snapshot,
             quick_tunnel_snapshot,
             log_text,
             update_log_text,
-            tunnel_log_text,
             quick_tunnel_log_text,
         )
 
     def _apply_snapshot(
         self,
         snapshot: dict,
-        tunnel_snapshot: dict,
         quick_tunnel_snapshot: dict,
         log_text: str,
         update_log_text: str,
-        tunnel_log_text: str,
         quick_tunnel_log_text: str,
     ) -> None:
         self.refresh_in_progress = False
@@ -967,9 +798,7 @@ class WebMonitorApp:
         self.webhook_status_text.set(str(stats.get("lastWebhookStatus") or "-"))
         self.log_size_text.set(f"{snapshot.get('log_size_kb', 0):.2f} KB")
         self.updated_text.set(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        self._apply_tunnel_snapshot(tunnel_snapshot)
         self._apply_quick_tunnel_snapshot(quick_tunnel_snapshot)
-        self._apply_tunnel_mode_snapshot(tunnel_snapshot, quick_tunnel_snapshot)
 
         self._append_history(self.latency_history, latency_ms)
         self._append_history(self.memory_history, memory_mb)
@@ -997,48 +826,7 @@ class WebMonitorApp:
 
         self.refresh_log(log_text)
         self.refresh_update_log(update_log_text)
-        self.refresh_tunnel_log(tunnel_log_text)
         self.refresh_quick_tunnel_log(quick_tunnel_log_text)
-
-    def _apply_tunnel_snapshot(self, tunnel_snapshot: dict) -> None:
-        metrics = tunnel_snapshot.get("metrics", {})
-        settings = tunnel_snapshot.get("settings", {})
-
-        if tunnel_snapshot.get("running"):
-            self.tunnel_status_text.set("Running")
-        elif tunnel_snapshot.get("validation_errors"):
-            self.tunnel_status_text.set("Config incomplete")
-        else:
-            self.tunnel_status_text.set("Stopped")
-        self.tunnel_pid_text.set(str(tunnel_snapshot.get("pid") or "-"))
-        self.tunnel_public_url_text.set(tunnel_snapshot.get("public_url", "-"))
-        self.tunnel_config_text.set(tunnel_snapshot.get("config_path", "-"))
-        self.tunnel_executable_text.set(
-            tunnel_snapshot.get("executable_path") or "cloudflared not found"
-        )
-        self.tunnel_log_path_label.configure(text=tunnel_snapshot.get("log_path", "-"))
-
-        if metrics.get("reachable"):
-            self.tunnel_metrics_text.set(
-                "Healthy ({status}) | {latency} ms | metrics={count}".format(
-                    status=metrics.get("status_code"),
-                    latency=metrics.get("latency_ms"),
-                    count=metrics.get("metrics_count"),
-                )
-            )
-        else:
-            self.tunnel_metrics_text.set(f"Unavailable: {metrics.get('error')}")
-
-        if not self._tunnel_form_has_focus():
-            self.tunnel_hostname_var.set(settings.get("hostname", ""))
-            self.tunnel_id_var.set(settings.get("tunnel_id", ""))
-            self.tunnel_name_var.set(settings.get("tunnel_name", ""))
-            self.tunnel_credentials_var.set(settings.get("credentials_file", ""))
-            self.tunnel_service_var.set(settings.get("service_url", ""))
-            self.tunnel_metrics_var.set(settings.get("metrics_address", ""))
-            self.tunnel_executable_var.set(settings.get("executable_path", ""))
-            self.tunnel_protocol_var.set(settings.get("protocol", ""))
-        self.refresh_tunnel_commands(settings)
 
     def _apply_quick_tunnel_snapshot(self, quick_tunnel_snapshot: dict) -> None:
         self.quick_tunnel_status_text.set("Running" if quick_tunnel_snapshot.get("running") else "Stopped")
@@ -1046,27 +834,6 @@ class WebMonitorApp:
         quick_public_url = quick_tunnel_snapshot.get("public_url") or "-"
         self.quick_tunnel_url_text.set(quick_public_url)
         self.quick_tunnel_log_path_label.configure(text=quick_tunnel_snapshot.get("log_path", "-"))
-
-    def _apply_tunnel_mode_snapshot(
-        self,
-        tunnel_snapshot: dict,
-        quick_tunnel_snapshot: dict,
-    ) -> None:
-        named_running = bool(tunnel_snapshot.get("running"))
-        quick_running = bool(quick_tunnel_snapshot.get("running"))
-
-        if named_running and quick_running:
-            mode = "Both: Named + Quick Share"
-        elif named_running:
-            mode = "Named Tunnel"
-        elif quick_running:
-            mode = "Quick Share Tunnel"
-        elif tunnel_snapshot.get("validation_errors"):
-            mode = "No active tunnel | Named config incomplete"
-        else:
-            mode = "No active tunnel"
-
-        self.tunnel_mode_text.set(mode)
 
     def _append_history(self, history: deque[float | None], value: float | None) -> None:
         history.append(value)
@@ -1104,24 +871,6 @@ class WebMonitorApp:
         self.update_log_text.insert("1.0", log_text)
         self.update_log_text.see("end")
         self.update_log_text.configure(state="disabled")
-
-    def refresh_tunnel_commands(self, settings: dict | None = None) -> None:
-        commands_text = "\n".join(get_setup_commands(settings))
-        self.tunnel_commands_text.configure(state="normal")
-        self.tunnel_commands_text.delete("1.0", "end")
-        self.tunnel_commands_text.insert("1.0", commands_text)
-        self.tunnel_commands_text.configure(state="disabled")
-
-    def refresh_tunnel_log(self, log_text: str) -> None:
-        if log_text == self.last_tunnel_log_text:
-            return
-
-        self.last_tunnel_log_text = log_text
-        self.tunnel_log_text.configure(state="normal")
-        self.tunnel_log_text.delete("1.0", "end")
-        self.tunnel_log_text.insert("1.0", log_text)
-        self.tunnel_log_text.see("end")
-        self.tunnel_log_text.configure(state="disabled")
 
     def refresh_quick_tunnel_log(self, log_text: str) -> None:
         if log_text == self.last_quick_tunnel_log_text:
@@ -1164,32 +913,6 @@ class WebMonitorApp:
 
         self.local_port_var.set(str(next_port))
         self.append_activity(f"Suggested next free port: {next_port}")
-
-    def save_tunnel_settings_from_ui(self) -> None:
-        try:
-            settings = save_tunnel_settings(
-                {
-                    "hostname": self.tunnel_hostname_var.get(),
-                    "tunnel_id": self.tunnel_id_var.get(),
-                    "tunnel_name": self.tunnel_name_var.get(),
-                    "credentials_file": self.tunnel_credentials_var.get(),
-                    "service_url": self.tunnel_service_var.get(),
-                    "metrics_address": self.tunnel_metrics_var.get(),
-                    "executable_path": self.tunnel_executable_var.get(),
-                    "protocol": self.tunnel_protocol_var.get(),
-                }
-            )
-        except Exception as error:  # noqa: BLE001
-            self.append_activity(f"Saving tunnel settings failed: {error}")
-            return
-
-        self.append_activity(
-            "Tunnel settings saved.\n"
-            f"Hostname: {settings.get('hostname')}\n"
-            f"Config: {get_tunnel_snapshot().get('config_path')}"
-        )
-        self.refresh_tunnel_commands(settings)
-        self.request_refresh()
 
     def schedule_refresh(self) -> None:
         if self.auto_refresh.get() and not self.is_busy:
