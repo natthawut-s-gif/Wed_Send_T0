@@ -248,41 +248,70 @@ class WebMonitorApp:
         except tk.TclError:
             pass
 
-        self.root.configure(bg="#efe7da")
+        self.root.configure(bg="#ece3d6")
+        style.configure("Shell.TFrame", background="#ece3d6")
         style.configure("Card.TFrame", background="#fffaf4")
-        style.configure("Shell.TFrame", background="#efe7da")
-        style.configure("Title.TLabel", background="#fffaf4", font=("Segoe UI", 20, "bold"))
-        style.configure("Body.TLabel", background="#fffaf4", font=("Segoe UI", 10))
-        style.configure("Value.TLabel", background="#fffaf4", font=("Segoe UI", 10, "bold"))
+        style.configure("Panel.TFrame", background="#f7efe4")
+        style.configure("Muted.TFrame", background="#f5ede2")
+        style.configure("Title.TLabel", background="#fffaf4", font=("Segoe UI", 22, "bold"))
+        style.configure("Section.TLabel", background="#fffaf4", foreground="#7e5b3b", font=("Segoe UI", 9, "bold"))
+        style.configure("Heading.TLabel", background="#fffaf4", foreground="#2b2118", font=("Segoe UI", 12, "bold"))
+        style.configure("Body.TLabel", background="#fffaf4", foreground="#5f5042", font=("Segoe UI", 10))
+        style.configure("Muted.TLabel", background="#fffaf4", foreground="#8b7867", font=("Segoe UI", 9))
+        style.configure("Value.TLabel", background="#fffaf4", foreground="#1f1711", font=("Segoe UI", 10, "bold"))
+        style.configure("BigValue.TLabel", background="#fffaf4", foreground="#1f1711", font=("Segoe UI", 14, "bold"))
         style.configure("Body.TCheckbutton", background="#fffaf4", font=("Segoe UI", 10))
         style.configure("Accent.TButton", font=("Segoe UI", 10, "bold"))
+        style.configure("Small.TButton", font=("Segoe UI", 9))
+        style.configure("TNotebook", background="#fffaf4", borderwidth=0)
+        style.configure("TNotebook.Tab", padding=(12, 8), font=("Segoe UI", 10, "bold"))
 
     def _build_ui(self) -> None:
-        shell = ttk.Frame(self.root, padding=16, style="Shell.TFrame")
+        shell = ttk.Frame(self.root, padding=14, style="Shell.TFrame")
         shell.pack(fill="both", expand=True)
 
         card = ttk.Frame(shell, padding=18, style="Card.TFrame")
         card.pack(fill="both", expand=True)
+        card.columnconfigure(0, weight=1)
+        card.rowconfigure(3, weight=1)
 
         title_row = ttk.Frame(card, style="Card.TFrame")
-        title_row.pack(fill="x")
+        title_row.grid(row=0, column=0, sticky="ew")
+        title_row.columnconfigure(0, weight=1)
 
-        ttk.Label(title_row, text="Web Control Panel", style="Title.TLabel").pack(side="left")
+        title_left = ttk.Frame(title_row, style="Card.TFrame")
+        title_left.grid(row=0, column=0, sticky="w")
+        ttk.Label(title_left, text="MONITOR", style="Section.TLabel").pack(anchor="w")
+        ttk.Label(title_left, text="Web Control Panel", style="Title.TLabel").pack(anchor="w", pady=(2, 0))
+        ttk.Label(
+            title_left,
+            text="Start the local bridge, watch live status, and open Quick Share when you need a temporary public URL.",
+            style="Body.TLabel",
+        ).pack(anchor="w", pady=(6, 0))
+
+        title_actions = ttk.Frame(title_row, style="Card.TFrame")
+        title_actions.grid(row=0, column=1, sticky="e")
         ttk.Button(
-            title_row,
+            title_actions,
             text="Open Website",
             command=open_site,
             style="Accent.TButton",
-        ).pack(side="right")
+        ).pack(side="left", padx=(0, 8))
+        ttk.Button(
+            title_actions,
+            text="Open Quick URL",
+            command=open_quick_tunnel_url,
+            style="Small.TButton",
+        ).pack(side="left")
 
-        ttk.Label(
-            card,
-            text="Live controls, health telemetry, runtime counters, and recent logs in one window.",
-            style="Body.TLabel",
-        ).pack(anchor="w", pady=(6, 14))
+        controls_card = ttk.Frame(card, padding=14, style="Muted.TFrame")
+        controls_card.grid(row=1, column=0, sticky="ew", pady=(16, 14))
+        controls_card.columnconfigure(1, weight=1)
 
-        controls = ttk.Frame(card, style="Card.TFrame")
-        controls.pack(fill="x", pady=(0, 14))
+        ttk.Label(controls_card, text="Quick Actions", style="Heading.TLabel").grid(row=0, column=0, sticky="w")
+
+        controls = ttk.Frame(controls_card, style="Muted.TFrame")
+        controls.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(12, 0))
 
         self.update_unlock_button = None
         if self.show_update_project:
@@ -291,6 +320,7 @@ class WebMonitorApp:
                 text=" ",
                 width=2,
                 command=self.prompt_update_project_password,
+                style="Small.TButton",
             )
             self.update_unlock_button.pack(side="left", padx=(0, 8))
 
@@ -339,34 +369,71 @@ class WebMonitorApp:
         )
         self.refresh_now_button.pack(side="left", padx=(0, 12))
 
+        options_row = ttk.Frame(controls_card, style="Muted.TFrame")
+        options_row.grid(row=0, column=1, sticky="e")
         ttk.Checkbutton(
-            controls,
+            options_row,
             text="Auto refresh",
             variable=self.auto_refresh,
             style="Body.TCheckbutton",
         ).pack(side="left", padx=(0, 12))
 
         ttk.Checkbutton(
-            controls,
+            options_row,
             text="Open browser on start",
             variable=self.open_browser_on_start,
             style="Body.TCheckbutton",
         ).pack(side="left")
 
-        local_server_card = ttk.Frame(card, padding=14, style="Card.TFrame")
-        local_server_card.pack(fill="x", pady=(0, 14))
+        summary_grid = ttk.Frame(card, style="Card.TFrame")
+        summary_grid.grid(row=2, column=0, sticky="ew", pady=(0, 14))
+        for column in range(4):
+            summary_grid.columnconfigure(column, weight=1)
 
-        ttk.Label(local_server_card, text="Local Server", style="Value.TLabel").pack(anchor="w")
+        summary_cards = [
+            ("Server", self.status_text),
+            ("Health", self.health_text),
+            ("Local URL", self.url_text),
+            ("Quick Share", self.quick_tunnel_status_text),
+        ]
+        for index, (label, variable) in enumerate(summary_cards):
+            panel = ttk.Frame(summary_grid, padding=12, style="Muted.TFrame")
+            panel.grid(row=0, column=index, sticky="nsew", padx=(0 if index == 0 else 6, 0 if index == 3 else 6))
+            ttk.Label(panel, text=label.upper(), style="Section.TLabel").pack(anchor="w")
+            ttk.Label(panel, textvariable=variable, style="BigValue.TLabel", wraplength=250, justify="left").pack(
+                anchor="w",
+                pady=(8, 0),
+            )
+
+        content = ttk.Frame(card, style="Card.TFrame")
+        content.grid(row=3, column=0, sticky="nsew")
+        content.columnconfigure(0, weight=3)
+        content.columnconfigure(1, weight=4)
+        content.rowconfigure(1, weight=1)
+
+        left_column = ttk.Frame(content, style="Card.TFrame")
+        left_column.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        left_column.columnconfigure(0, weight=1)
+
+        right_column = ttk.Frame(content, style="Card.TFrame")
+        right_column.grid(row=0, column=1, sticky="nsew")
+        right_column.columnconfigure(0, weight=1)
+        right_column.rowconfigure(1, weight=1)
+
+        local_server_card = ttk.Frame(left_column, padding=14, style="Muted.TFrame")
+        local_server_card.grid(row=0, column=0, sticky="ew", pady=(0, 12))
+
+        ttk.Label(local_server_card, text="Local Server", style="Heading.TLabel").pack(anchor="w")
         ttk.Label(
             local_server_card,
             text=(
                 "Set the local web port here. If the port is already used, "
                 "Start will switch to the next free port automatically."
             ),
-            style="Body.TLabel",
+            style="Muted.TLabel",
         ).pack(anchor="w", pady=(6, 10))
 
-        local_server_controls = ttk.Frame(local_server_card, style="Card.TFrame")
+        local_server_controls = ttk.Frame(local_server_card, style="Muted.TFrame")
         local_server_controls.pack(fill="x", pady=(0, 8))
 
         ttk.Label(local_server_controls, text="Local Port", style="Body.TLabel").pack(side="left")
@@ -389,24 +456,19 @@ class WebMonitorApp:
         )
         self.use_next_local_port_button.pack(side="left")
 
-        local_server_status = ttk.Frame(local_server_card, style="Card.TFrame")
+        local_server_status = ttk.Frame(local_server_card, style="Muted.TFrame")
         local_server_status.pack(fill="x")
         local_server_status.columnconfigure(1, weight=1)
         local_server_status.columnconfigure(3, weight=1)
         self._add_status_row(local_server_status, 0, 0, "Preview URL", self.local_port_preview_text)
         self._add_status_row(local_server_status, 0, 2, "Port Status", self.local_port_status_text)
 
-        quick_tunnel_card = ttk.Frame(card, padding=14, style="Card.TFrame")
-        quick_tunnel_card.pack(fill="x", pady=(0, 14))
+        quick_tunnel_card = ttk.Frame(left_column, padding=14, style="Muted.TFrame")
+        quick_tunnel_card.grid(row=1, column=0, sticky="ew", pady=(0, 12))
 
-        quick_header = ttk.Frame(quick_tunnel_card, style="Card.TFrame")
+        quick_header = ttk.Frame(quick_tunnel_card, style="Muted.TFrame")
         quick_header.pack(fill="x")
-        ttk.Label(quick_header, text="Quick Share Tunnel", style="Value.TLabel").pack(side="left")
-        ttk.Button(
-            quick_header,
-            text="Open Quick URL",
-            command=open_quick_tunnel_url,
-        ).pack(side="right")
+        ttk.Label(quick_header, text="Quick Share Tunnel", style="Heading.TLabel").pack(side="left")
 
         ttk.Label(
             quick_tunnel_card,
@@ -414,10 +476,10 @@ class WebMonitorApp:
                 "Use this when you only need to open the web from another location. "
                 "No custom domain required."
             ),
-            style="Body.TLabel",
+            style="Muted.TLabel",
         ).pack(anchor="w", pady=(6, 10))
 
-        quick_controls = ttk.Frame(quick_tunnel_card, style="Card.TFrame")
+        quick_controls = ttk.Frame(quick_tunnel_card, style="Muted.TFrame")
         quick_controls.pack(fill="x", pady=(0, 8))
 
         self.quick_tunnel_start_button = ttk.Button(
@@ -442,7 +504,7 @@ class WebMonitorApp:
         )
         self.quick_tunnel_restart_button.pack(side="left")
 
-        quick_status_grid = ttk.Frame(quick_tunnel_card, style="Card.TFrame")
+        quick_status_grid = ttk.Frame(quick_tunnel_card, style="Muted.TFrame")
         quick_status_grid.pack(fill="x")
         quick_status_grid.columnconfigure(1, weight=1)
         quick_status_grid.columnconfigure(3, weight=1)
@@ -450,8 +512,18 @@ class WebMonitorApp:
         self._add_status_row(quick_status_grid, 0, 2, "Quick PID", self.quick_tunnel_pid_text)
         self._add_status_row(quick_status_grid, 1, 0, "Quick URL", self.quick_tunnel_url_text)
 
-        status_grid = ttk.Frame(card, style="Card.TFrame")
-        status_grid.pack(fill="x", pady=(0, 14))
+        details_card = ttk.Frame(left_column, padding=14, style="Muted.TFrame")
+        details_card.grid(row=2, column=0, sticky="nsew")
+        details_card.columnconfigure(0, weight=1)
+        ttk.Label(details_card, text="Runtime Details", style="Heading.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(
+            details_card,
+            text="Current process, health, usage counters, and shareable URLs.",
+            style="Muted.TLabel",
+        ).grid(row=1, column=0, sticky="w", pady=(6, 10))
+
+        status_grid = ttk.Frame(details_card, style="Muted.TFrame")
+        status_grid.grid(row=2, column=0, sticky="ew")
         status_grid.columnconfigure(1, weight=1)
         status_grid.columnconfigure(3, weight=1)
 
@@ -470,8 +542,17 @@ class WebMonitorApp:
         self._add_status_row(status_grid, 6, 0, "Log Size", self.log_size_text)
         self._add_status_row(status_grid, 6, 2, "Updated", self.updated_text)
 
-        chart_grid = ttk.Frame(card, style="Card.TFrame")
-        chart_grid.pack(fill="both", expand=False, pady=(0, 14))
+        charts_card = ttk.Frame(right_column, padding=14, style="Muted.TFrame")
+        charts_card.grid(row=0, column=0, sticky="nsew", pady=(0, 12))
+        ttk.Label(charts_card, text="Live Charts", style="Heading.TLabel").pack(anchor="w")
+        ttk.Label(
+            charts_card,
+            text="Latency, memory, reachability, and upload counters over time.",
+            style="Muted.TLabel",
+        ).pack(anchor="w", pady=(6, 10))
+
+        chart_grid = ttk.Frame(charts_card, style="Muted.TFrame")
+        chart_grid.pack(fill="both", expand=True)
         chart_grid.columnconfigure(0, weight=1)
         chart_grid.columnconfigure(1, weight=1)
         chart_grid.rowconfigure(0, weight=1)
@@ -494,11 +575,16 @@ class WebMonitorApp:
         self.uploads_chart = MonitorChart(chart_grid, "Upload Counters")
         self.uploads_chart.grid(row=1, column=1, sticky="nsew", padx=(8, 0), pady=(8, 0))
 
-        self.panes = ttk.Panedwindow(card, orient="vertical")
-        self.panes.pack(fill="both", expand=True)
+        logs_card = ttk.Frame(right_column, padding=14, style="Muted.TFrame")
+        logs_card.grid(row=1, column=0, sticky="nsew")
+        logs_card.columnconfigure(0, weight=1)
+        logs_card.rowconfigure(1, weight=1)
+        ttk.Label(logs_card, text="Logs", style="Heading.TLabel").grid(row=0, column=0, sticky="w")
 
-        activity_frame = ttk.Frame(self.panes, padding=6, style="Card.TFrame")
-        self.panes.add(activity_frame, weight=1)
+        self.log_notebook = ttk.Notebook(logs_card)
+        self.log_notebook.grid(row=1, column=0, sticky="nsew", pady=(10, 0))
+
+        activity_frame = ttk.Frame(self.log_notebook, padding=8, style="Card.TFrame")
         ttk.Label(activity_frame, text="Action Output", style="Value.TLabel").pack(anchor="w")
         self.activity_text = scrolledtext.ScrolledText(
             activity_frame,
@@ -510,13 +596,14 @@ class WebMonitorApp:
         self.activity_text.pack(fill="both", expand=True, pady=(6, 0))
         self.activity_text.insert("1.0", "Ready.\n")
         self.activity_text.configure(state="disabled")
+        self.log_notebook.add(activity_frame, text="Activity")
 
         self.update_log_text = None
-        self.update_log_frame = ttk.Frame(self.panes, padding=6, style="Card.TFrame")
+        self.update_log_frame = ttk.Frame(self.log_notebook, padding=8, style="Card.TFrame")
         update_log_header = ttk.Frame(self.update_log_frame, style="Card.TFrame")
         update_log_header.pack(fill="x")
         ttk.Label(update_log_header, text="Project Update Log", style="Value.TLabel").pack(side="left")
-        ttk.Label(update_log_header, text=str(UPDATE_LOG_FILE), style="Body.TLabel").pack(side="right")
+        ttk.Label(update_log_header, text=str(UPDATE_LOG_FILE), style="Muted.TLabel").pack(side="right")
 
         self.update_log_text = scrolledtext.ScrolledText(
             self.update_log_frame,
@@ -529,14 +616,13 @@ class WebMonitorApp:
         self.update_log_text.configure(state="disabled")
 
         if self.update_project_unlocked:
-            self.panes.add(self.update_log_frame, weight=1)
+            self.log_notebook.add(self.update_log_frame, text="Project Update")
 
-        log_frame = ttk.Frame(self.panes, padding=6, style="Card.TFrame")
-        self.panes.add(log_frame, weight=2)
+        log_frame = ttk.Frame(self.log_notebook, padding=8, style="Card.TFrame")
         log_header = ttk.Frame(log_frame, style="Card.TFrame")
         log_header.pack(fill="x")
         ttk.Label(log_header, text="Recent Server Log", style="Value.TLabel").pack(side="left")
-        ttk.Label(log_header, text=str(LOG_FILE), style="Body.TLabel").pack(side="right")
+        ttk.Label(log_header, text=str(LOG_FILE), style="Muted.TLabel").pack(side="right")
 
         self.log_text = scrolledtext.ScrolledText(
             log_frame,
@@ -547,13 +633,13 @@ class WebMonitorApp:
         )
         self.log_text.pack(fill="both", expand=True, pady=(6, 0))
         self.log_text.configure(state="disabled")
+        self.log_notebook.add(log_frame, text="Server Log")
 
-        quick_tunnel_log_frame = ttk.Frame(self.panes, padding=6, style="Card.TFrame")
-        self.panes.add(quick_tunnel_log_frame, weight=1)
+        quick_tunnel_log_frame = ttk.Frame(self.log_notebook, padding=8, style="Card.TFrame")
         quick_tunnel_log_header = ttk.Frame(quick_tunnel_log_frame, style="Card.TFrame")
         quick_tunnel_log_header.pack(fill="x")
         ttk.Label(quick_tunnel_log_header, text="Recent Quick Tunnel Log", style="Value.TLabel").pack(side="left")
-        self.quick_tunnel_log_path_label = ttk.Label(quick_tunnel_log_header, text="-", style="Body.TLabel")
+        self.quick_tunnel_log_path_label = ttk.Label(quick_tunnel_log_header, text="-", style="Muted.TLabel")
         self.quick_tunnel_log_path_label.pack(side="right")
 
         self.quick_tunnel_log_text = scrolledtext.ScrolledText(
@@ -565,6 +651,7 @@ class WebMonitorApp:
         )
         self.quick_tunnel_log_text.pack(fill="both", expand=True, pady=(6, 0))
         self.quick_tunnel_log_text.configure(state="disabled")
+        self.log_notebook.add(quick_tunnel_log_frame, text="Quick Tunnel Log")
 
     def _add_status_row(
         self,
@@ -641,10 +728,10 @@ class WebMonitorApp:
         if self.update_button is not None and not self.update_button.winfo_manager():
             self.update_button.pack(side="left", padx=(0, 8), before=self.refresh_now_button)
 
-        if self.update_log_frame is not None:
-            managed = any(str(child) == str(self.update_log_frame) for child in self.panes.panes())
+        if self.update_log_frame is not None and self.log_notebook is not None:
+            managed = any(str(child) == str(self.update_log_frame) for child in self.log_notebook.tabs())
             if not managed:
-                self.panes.insert(1, self.update_log_frame, weight=1)
+                self.log_notebook.insert(1, self.update_log_frame, text="Project Update")
 
     def _local_port_has_focus(self) -> bool:
         focused_widget = self.root.focus_get()
