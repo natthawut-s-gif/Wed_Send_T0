@@ -11,6 +11,7 @@ __pycache__/
 .project_update.log
 webhook-settings.json
 cloudflared-settings.json
+cloudflared/config.yml
 upload-history.json
 _fix_blob_test/
 data/

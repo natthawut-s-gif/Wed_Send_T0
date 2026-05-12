@@ -4,7 +4,8 @@ This folder contains a local-managed Cloudflare Tunnel configuration for publish
 
 Files:
 
-- `config.yml` - generated tunnel config used by `cloudflared`
+- `config.example.yml` - example tunnel config safe to share in Git
+- `config.yml` - generated local tunnel config used by `cloudflared` and ignored by Git
 - `../cloudflared-settings.json` - editable settings consumed by `manage_web_ui.py`
 
 Required steps:

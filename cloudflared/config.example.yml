@@ -1,0 +1,9 @@
+# Example Cloudflare Tunnel config
+# Copy or generate a real local config.yml from cloudflared-settings.json.
+tunnel: 'YOUR-TUNNEL-UUID'
+credentials-file: 'C:\Users\YOUR-USER\.cloudflared\YOUR-TUNNEL-UUID.json'
+
+ingress:
+  - hostname: 'doc.yourdomain.com'
+    service: 'http://localhost:3000'
+  - service: http_status:404
