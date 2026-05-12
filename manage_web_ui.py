@@ -61,9 +61,9 @@ class MonitorChart(ttk.Frame):
         self.canvas = tk.Canvas(
             self,
             height=180,
-            bg="#fffdf8",
-            highlightthickness=1,
-            highlightbackground="#e2d4c2",
+            bg="#ffffff",
+            highlightthickness=0,
+            bd=0,
         )
         self.canvas.pack(fill="both", expand=True, pady=(8, 0))
         self.canvas.bind("<Configure>", lambda _event: self.redraw())
@@ -116,7 +116,7 @@ class MonitorChart(ttk.Frame):
                 width / 2,
                 height / 2,
                 text="No metric data yet",
-                fill="#7a6d61",
+                fill="#6b7280",
                 font=("Segoe UI", 10),
             )
             return
@@ -130,9 +130,7 @@ class MonitorChart(ttk.Frame):
 
         for step in range(5):
             y = top + (plot_height * step / 4)
-            canvas.create_line(left, y, right, y, fill="#eee2d5")
-
-        canvas.create_rectangle(left, top, right, bottom, outline="#e2d4c2")
+            canvas.create_line(left, y, right, y, fill="#eef2f7")
 
         max_points = max(len(series_values) for _label, _color, series_values in self.series)
         x_step = plot_width / max(max_points - 1, 1)
@@ -173,7 +171,7 @@ class MonitorChart(ttk.Frame):
             top - 2,
             anchor="sw",
             text=self._format_value(y_max if self.fixed_max is not None else max(values)),
-            fill="#7a6d61",
+            fill="#6b7280",
             font=("Segoe UI", 8),
         )
         canvas.create_text(
@@ -181,7 +179,7 @@ class MonitorChart(ttk.Frame):
             bottom + 2,
             anchor="nw",
             text=self._format_value(y_min),
-            fill="#7a6d61",
+            fill="#6b7280",
             font=("Segoe UI", 8),
         )
 
@@ -248,11 +246,11 @@ class WebMonitorApp:
         except tk.TclError:
             pass
 
-        self.root.configure(bg="#f3f4f6")
-        style.configure("Shell.TFrame", background="#f3f4f6")
-        style.configure("Card.TFrame", background="#ffffff", relief="solid", borderwidth=1)
+        self.root.configure(bg="#f8fafc")
+        style.configure("Shell.TFrame", background="#f8fafc")
+        style.configure("Card.TFrame", background="#ffffff", relief="flat", borderwidth=0)
         style.configure("Panel.TFrame", background="#ffffff")
-        style.configure("Muted.TFrame", background="#ffffff", relief="solid", borderwidth=1)
+        style.configure("Muted.TFrame", background="#ffffff", relief="flat", borderwidth=0)
         style.configure("Title.TLabel", background="#ffffff", foreground="#111827", font=("Segoe UI", 22, "bold"))
         style.configure("Section.TLabel", background="#ffffff", foreground="#9a6a2f", font=("Segoe UI", 9, "bold"))
         style.configure("Heading.TLabel", background="#ffffff", foreground="#1f2937", font=("Segoe UI", 12, "bold"))
