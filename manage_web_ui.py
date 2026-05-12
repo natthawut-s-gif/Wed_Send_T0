@@ -61,7 +61,7 @@ class MonitorChart(ttk.Frame):
         self.canvas = tk.Canvas(
             self,
             height=180,
-            bg="#ffffff",
+            bg="#fbfcfe",
             highlightthickness=0,
             bd=0,
         )
@@ -128,9 +128,9 @@ class MonitorChart(ttk.Frame):
         else:
             y_max = y_max * 1.08 if self.fixed_max is None else y_max
 
-        for step in range(5):
-            y = top + (plot_height * step / 4)
-            canvas.create_line(left, y, right, y, fill="#eef2f7")
+        for step in range(3):
+            y = top + (plot_height * step / 2)
+            canvas.create_line(left, y, right, y, fill="#f1f5f9")
 
         max_points = max(len(series_values) for _label, _color, series_values in self.series)
         x_step = plot_width / max(max_points - 1, 1)
@@ -247,18 +247,21 @@ class WebMonitorApp:
             pass
 
         self.root.configure(bg="#f8fafc")
+        style.configure("TFrame", background="#f8fafc", relief="flat", borderwidth=0)
+        style.configure("TLabelframe", background="#f8fafc", relief="flat", borderwidth=0)
+        style.configure("TLabelframe.Label", background="#f8fafc", foreground="#1f2937")
         style.configure("Shell.TFrame", background="#f8fafc")
-        style.configure("Card.TFrame", background="#ffffff", relief="flat", borderwidth=0)
-        style.configure("Panel.TFrame", background="#ffffff")
-        style.configure("Muted.TFrame", background="#ffffff", relief="flat", borderwidth=0)
-        style.configure("Title.TLabel", background="#ffffff", foreground="#111827", font=("Segoe UI", 22, "bold"))
-        style.configure("Section.TLabel", background="#ffffff", foreground="#9a6a2f", font=("Segoe UI", 9, "bold"))
-        style.configure("Heading.TLabel", background="#ffffff", foreground="#1f2937", font=("Segoe UI", 12, "bold"))
-        style.configure("Body.TLabel", background="#ffffff", foreground="#4b5563", font=("Segoe UI", 10))
-        style.configure("Muted.TLabel", background="#ffffff", foreground="#6b7280", font=("Segoe UI", 9))
-        style.configure("Value.TLabel", background="#ffffff", foreground="#111827", font=("Segoe UI", 10, "bold"))
-        style.configure("BigValue.TLabel", background="#ffffff", foreground="#111827", font=("Segoe UI", 14, "bold"))
-        style.configure("Body.TCheckbutton", background="#ffffff", font=("Segoe UI", 10))
+        style.configure("Card.TFrame", background="#f8fafc", relief="flat", borderwidth=0)
+        style.configure("Panel.TFrame", background="#f8fafc")
+        style.configure("Muted.TFrame", background="#f8fafc", relief="flat", borderwidth=0)
+        style.configure("Title.TLabel", background="#f8fafc", foreground="#111827", font=("Segoe UI", 22, "bold"))
+        style.configure("Section.TLabel", background="#f8fafc", foreground="#9a6a2f", font=("Segoe UI", 9, "bold"))
+        style.configure("Heading.TLabel", background="#f8fafc", foreground="#1f2937", font=("Segoe UI", 12, "bold"))
+        style.configure("Body.TLabel", background="#f8fafc", foreground="#4b5563", font=("Segoe UI", 10))
+        style.configure("Muted.TLabel", background="#f8fafc", foreground="#6b7280", font=("Segoe UI", 9))
+        style.configure("Value.TLabel", background="#f8fafc", foreground="#111827", font=("Segoe UI", 10, "bold"))
+        style.configure("BigValue.TLabel", background="#f8fafc", foreground="#111827", font=("Segoe UI", 14, "bold"))
+        style.configure("Body.TCheckbutton", background="#f8fafc", font=("Segoe UI", 10))
         style.configure("TButton", font=("Segoe UI", 10), padding=(10, 6), background="#ffffff")
         style.configure("Accent.TButton", font=("Segoe UI", 10, "bold"), padding=(12, 7), background="#d97706", foreground="#ffffff")
         style.map(
@@ -267,7 +270,7 @@ class WebMonitorApp:
             foreground=[("disabled", "#f3f4f6"), ("!disabled", "#ffffff")],
         )
         style.configure("Small.TButton", font=("Segoe UI", 9), padding=(8, 5))
-        style.configure("TNotebook", background="#ffffff", borderwidth=0)
+        style.configure("TNotebook", background="#f8fafc", borderwidth=0)
         style.configure("TNotebook.Tab", padding=(12, 8), font=("Segoe UI", 10, "bold"))
 
     def _build_ui(self) -> None:
