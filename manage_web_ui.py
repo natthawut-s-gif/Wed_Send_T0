@@ -60,7 +60,7 @@ class MonitorChart(ttk.Frame):
 
         self.canvas = tk.Canvas(
             self,
-            height=180,
+            height=150,
             bg="#fbfcfe",
             highlightthickness=0,
             bd=0,
@@ -416,6 +416,7 @@ class WebMonitorApp:
         content.grid(row=3, column=0, sticky="nsew")
         content.columnconfigure(0, weight=3)
         content.columnconfigure(1, weight=4)
+        content.rowconfigure(0, weight=1)
         content.rowconfigure(1, weight=1)
 
         left_column = ttk.Frame(content, style="Card.TFrame")
@@ -425,7 +426,6 @@ class WebMonitorApp:
         right_column = ttk.Frame(content, style="Card.TFrame")
         right_column.grid(row=0, column=1, sticky="nsew")
         right_column.columnconfigure(0, weight=1)
-        right_column.rowconfigure(1, weight=1)
 
         local_server_card = ttk.Frame(left_column, padding=14, style="Muted.TFrame")
         local_server_card.grid(row=0, column=0, sticky="ew", pady=(0, 12))
@@ -582,8 +582,8 @@ class WebMonitorApp:
         self.uploads_chart = MonitorChart(chart_grid, "Upload Counters")
         self.uploads_chart.grid(row=1, column=1, sticky="nsew", padx=(8, 0), pady=(8, 0))
 
-        logs_card = ttk.Frame(right_column, padding=14, style="Muted.TFrame")
-        logs_card.grid(row=1, column=0, sticky="nsew")
+        logs_card = ttk.Frame(content, padding=14, style="Muted.TFrame")
+        logs_card.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=(12, 0))
         logs_card.columnconfigure(0, weight=1)
         logs_card.rowconfigure(1, weight=1)
         ttk.Label(logs_card, text="Logs", style="Heading.TLabel").grid(row=0, column=0, sticky="w")
