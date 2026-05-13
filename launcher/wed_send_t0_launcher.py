@@ -58,6 +58,10 @@ def launcher_state_file() -> Path:
     return launcher_root() / "launcher-state.json"
 
 
+def launcher_ready_file() -> Path:
+    return launcher_root() / "runtime-ready.flag"
+
+
 def hidden_subprocess_kwargs() -> dict:
     if os.name != "nt":
         return {}
@@ -191,6 +195,15 @@ def read_json_file(path: Path) -> dict:
 
 def write_json_file(path: Path, payload: dict) -> None:
     path.write_text(f"{json.dumps(payload, indent=2)}\n", encoding="utf-8")
+
+
+def clear_runtime_ready_flag() -> None:
+    ready_path = launcher_ready_file()
+    try:
+        if ready_path.exists():
+            ready_path.unlink()
+    except OSError:
+        pass
 
 
 def package_lock_hash(repo_dir: Path) -> str:
@@ -376,14 +389,34 @@ def run_runtime_ui(repo_dir: Path) -> int:
             show_error("Launcher Error", "Python was not found. Install Python 3 first.")
             return 1
 
+        clear_runtime_ready_flag()
+        env = os.environ.copy()
+        env["WEDSEND_LAUNCHER_READY_FILE"] = str(launcher_ready_file())
         set_status("Opening application")
         log(f"Launching runtime UI with {pythonw_executable}")
-        subprocess.Popen(
+        process = subprocess.Popen(
             [pythonw_executable, str(runtime_script)],
             cwd=str(repo_dir),
+            env=env,
             **hidden_subprocess_kwargs(),
         )
-        return 0
+        set_status("Waiting for app window")
+        ready_path = launcher_ready_file()
+        deadline = time.monotonic() + 45.0
+        while time.monotonic() < deadline:
+            if ready_path.exists():
+                log("Runtime UI reported ready.")
+                return 0
+
+            exit_code = process.poll()
+            if exit_code is not None:
+                raise RuntimeError(f"Runtime UI exited early with code {exit_code}.")
+            time.sleep(0.2)
+
+        if process.poll() is None:
+            log("Runtime UI is still starting; continuing without ready signal.")
+            return 0
+        raise RuntimeError("Runtime UI did not become ready.")
 
     return run_python_script(runtime_script, [])
 
@@ -492,7 +525,7 @@ class LauncherSplash:
         self.close_button = ttk.Button(footer, text="Close", command=self.root.destroy, state="disabled")
         self.close_button.grid(row=0, column=1, sticky="e")
 
-        self.root.after(80, self._drain_events)
+        self.root.after(120, self._drain_events)
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _on_close(self) -> None:
@@ -528,7 +561,7 @@ class LauncherSplash:
                 self.result_code = 0
                 self.status_var.set(payload)
                 self.progress.stop()
-                self.root.after(500, self.root.destroy)
+                self.root.after(700, self.root.destroy)
             elif event == "finish_error":
                 self.result_code = 1
                 self.status_var.set("Launcher failed")
@@ -537,7 +570,7 @@ class LauncherSplash:
                 self.close_button.configure(state="normal")
 
         if self.root.winfo_exists():
-            self.root.after(80, self._drain_events)
+            self.root.after(120, self._drain_events)
 
     def start(self) -> int:
         worker = threading.Thread(target=self._worker, daemon=True)

@@ -1,5 +1,6 @@
 import contextlib
 import io
+import os
 import threading
 import tkinter as tk
 import tkinter.scrolledtext as scrolledtext
@@ -1026,6 +1027,14 @@ class WebMonitorApp:
 def main() -> None:
     root = tk.Tk()
     WebMonitorApp(root)
+    root.update_idletasks()
+    ready_file = os.environ.get("WEDSEND_LAUNCHER_READY_FILE", "").strip()
+    if ready_file:
+        try:
+            with open(ready_file, "w", encoding="utf-8") as handle:
+                handle.write("ready\n")
+        except OSError:
+            pass
     root.mainloop()
 
 
