@@ -163,16 +163,26 @@ def get_pythonw_executable() -> str | None:
     return None
 
 
-def run_command(command: list[str], *, cwd: Path | None = None, allow_failure: bool = False) -> subprocess.CompletedProcess[str]:
+def run_command(
+    command: list[str],
+    *,
+    cwd: Path | None = None,
+    allow_failure: bool = False,
+    timeout: float | None = None,
+) -> subprocess.CompletedProcess[str]:
     log(f"$ {' '.join(command)}")
-    result = subprocess.run(
-        command,
-        cwd=str(cwd) if cwd else None,
-        capture_output=True,
-        text=True,
-        check=False,
-        **hidden_subprocess_kwargs(),
-    )
+    try:
+        result = subprocess.run(
+            command,
+            cwd=str(cwd) if cwd else None,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=timeout,
+            **hidden_subprocess_kwargs(),
+        )
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError(f"Command timed out after {timeout:.0f}s: {' '.join(command)}") from error
     stdout = (result.stdout or "").strip()
     stderr = (result.stderr or "").strip()
     if stdout:
@@ -271,15 +281,15 @@ def check_runtime_dependencies() -> None:
     log(f"Git: {git_executable}")
     log(f"npm: {npm_executable}")
 
-    run_command([python_executable, "--version"], allow_failure=True)
-    run_command([git_executable, "--version"], allow_failure=True)
-    run_command([npm_executable, "--version"], allow_failure=True)
-
 
 def update_runtime_repo(repo_dir: Path) -> None:
     git_executable = get_git_executable()
     if not git_executable:
         raise RuntimeError("Git was not found. Install Git first.")
+
+    state = read_json_file(launcher_state_file())
+    now = time.time()
+    last_git_check = float(state.get("last_git_check_ts", 0) or 0)
 
     set_status("Checking for updates from GitHub")
     if not (repo_dir / ".git").exists():
@@ -293,8 +303,15 @@ def update_runtime_repo(repo_dir: Path) -> None:
                 REPO_BRANCH,
                 REPO_URL,
                 str(repo_dir),
-            ]
+            ],
+            timeout=30,
         )
+        state["last_git_check_ts"] = now
+        write_json_file(launcher_state_file(), state)
+        return
+
+    if last_git_check and (now - last_git_check) < 300:
+        log(f"Recent Git check found ({now - last_git_check:.0f}s ago). Skipping remote fetch.")
         return
 
     run_command([git_executable, "remote", "set-url", "origin", REPO_URL], cwd=repo_dir, allow_failure=True)
@@ -303,7 +320,7 @@ def update_runtime_repo(repo_dir: Path) -> None:
         cwd=repo_dir,
         allow_failure=True,
     ).stdout.strip()
-    run_command([git_executable, "fetch", "origin", REPO_BRANCH], cwd=repo_dir)
+    run_command([git_executable, "fetch", "origin", REPO_BRANCH], cwd=repo_dir, timeout=10)
     remote_head = run_command(
         [git_executable, "rev-parse", "FETCH_HEAD"],
         cwd=repo_dir,
@@ -316,6 +333,8 @@ def update_runtime_repo(repo_dir: Path) -> None:
         log(f"Updated runtime repo: {local_head or '-'} -> {remote_head}")
     else:
         log(f"Runtime repo already up to date at {remote_head}")
+    state["last_git_check_ts"] = now
+    write_json_file(launcher_state_file(), state)
 
 
 def ensure_node_dependencies(repo_dir: Path) -> None:
@@ -402,7 +421,7 @@ def run_runtime_ui(repo_dir: Path) -> int:
         )
         set_status("Waiting for app window")
         ready_path = launcher_ready_file()
-        deadline = time.monotonic() + 45.0
+        deadline = time.monotonic() + 10.0
         while time.monotonic() < deadline:
             if ready_path.exists():
                 log("Runtime UI reported ready.")
@@ -414,7 +433,7 @@ def run_runtime_ui(repo_dir: Path) -> int:
             time.sleep(0.2)
 
         if process.poll() is None:
-            log("Runtime UI is still starting; continuing without ready signal.")
+            log("Runtime UI is still starting; continuing without waiting longer.")
             return 0
         raise RuntimeError("Runtime UI did not become ready.")
 

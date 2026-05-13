@@ -1026,7 +1026,9 @@ class WebMonitorApp:
 
 def main() -> None:
     root = tk.Tk()
-    WebMonitorApp(root)
+    root.title("Upload Web Monitor")
+    root.geometry("1240x920")
+    root.minsize(1100, 760)
     root.update_idletasks()
     ready_file = os.environ.get("WEDSEND_LAUNCHER_READY_FILE", "").strip()
     if ready_file:
@@ -1035,6 +1037,7 @@ def main() -> None:
                 handle.write("ready\n")
         except OSError:
             pass
+    WebMonitorApp(root)
     root.mainloop()
 
 
