@@ -48,9 +48,6 @@
           <button id="manualLoginButton" type="submit" class="secondary-button secondary-button-dark">
             Sign in
           </button>
-          <button id="manualRegisterButton" type="button" class="secondary-button">
-            Create account
-          </button>
         </form>
 
         <div class="login-divider">
@@ -322,6 +319,40 @@
             <span id="settingsMicrosoftAuthorityInputLabel"></span>
             <input id="settingsMicrosoftAuthority" type="url" name="microsoftAuthority" />
           </label>
+
+          <section id="accountManagementSection" class="settings-status-card hidden">
+            <div class="settings-status-head">
+              <span id="accountManagementTitle"></span>
+              <em id="accountManagementBadge" class="preview-status idle"></em>
+            </div>
+            <p id="accountManagementDescription" class="theme-helper"></p>
+
+            <label class="field">
+              <span id="registerAccountEmailLabel"></span>
+              <input id="registerAccountEmailInput" type="email" autocomplete="off" />
+            </label>
+
+            <label class="field">
+              <span id="registerAccountPasswordLabel"></span>
+              <input
+                id="registerAccountPasswordInput"
+                type="password"
+                autocomplete="new-password"
+              />
+            </label>
+
+            <label class="field">
+              <span id="registerAccountRoleLabel"></span>
+              <select id="registerAccountRoleSelect">
+                <option value="user">user</option>
+                <option value="admin">admin</option>
+              </select>
+            </label>
+
+            <button id="registerAccountButton" type="button" class="secondary-button secondary-button-dark">
+              Create account
+            </button>
+          </section>
 
           <div id="settingsMessage" class="settings-message idle"></div>
 
@@ -789,7 +820,6 @@
           loginEmailLabel: "Email",
           loginPasswordLabel: "Password",
           loginButton: "Sign in",
-          registerButton: "Create account",
           logoutButton: "Logout",
           loginDivider: "or continue with",
           loginWithGoogle: "Continue with Google",
@@ -802,6 +832,19 @@
           registerSending: "Sending register request...",
           registerSuccess: "Register successful.",
           registerFailed: "Register failed.",
+          registerAdminOnly: "Only admin users can create accounts.",
+          registerAccountTitle: "Account Management",
+          registerAccountDescription:
+            "Only users with the admin role can create additional accounts from this settings panel.",
+          registerAccountBadgeAdmin: "Admin only",
+          registerAccountBadgeLocked: "Restricted",
+          registerAccountEmailLabel: "New account email",
+          registerAccountPasswordLabel: "New account password",
+          registerAccountRoleLabel: "Account role",
+          registerAccountRoleUser: "User",
+          registerAccountRoleAdmin: "Admin",
+          registerAccountButton: "Create account",
+          registerAccountRequired: "Please enter email and password for the new account.",
           logoutSuccess: "Logged out successfully.",
           loginWebhookMissing: "Login webhook is not configured yet.",
           loginGoogleMissing: "Google Login is not configured yet.",
@@ -832,7 +875,6 @@
       const loginEmailInput = document.getElementById("loginEmailInput");
       const loginPasswordInput = document.getElementById("loginPasswordInput");
       const manualLoginButton = document.getElementById("manualLoginButton");
-      const manualRegisterButton = document.getElementById("manualRegisterButton");
       const microsoftLoginButton = document.getElementById("microsoftLoginButton");
       const googleLoginButtonHost = document.getElementById("googleLoginButtonHost");
       const loginMessage = document.getElementById("loginMessage");
@@ -894,6 +936,12 @@
       const settingsGoogleClientId = document.getElementById("settingsGoogleClientId");
       const settingsMicrosoftClientId = document.getElementById("settingsMicrosoftClientId");
       const settingsMicrosoftAuthority = document.getElementById("settingsMicrosoftAuthority");
+      const accountManagementSection = document.getElementById("accountManagementSection");
+      const accountManagementBadge = document.getElementById("accountManagementBadge");
+      const registerAccountEmailInput = document.getElementById("registerAccountEmailInput");
+      const registerAccountPasswordInput = document.getElementById("registerAccountPasswordInput");
+      const registerAccountRoleSelect = document.getElementById("registerAccountRoleSelect");
+      const registerAccountButton = document.getElementById("registerAccountButton");
       const currentLoginWebhookUrl = document.getElementById("currentLoginWebhookUrl");
       const currentLoginWebhookStatus = document.getElementById("currentLoginWebhookStatus");
       const appVersionText = document.getElementById("appVersionText");
@@ -918,7 +966,8 @@
       let loginState = {
         isAuthenticated: false,
         provider: "",
-        email: ""
+        email: "",
+        role: ""
       };
       let statusState = { type: "idle" };
       let chatMessageState = {
@@ -1065,7 +1114,6 @@
         setText("loginEmailLabel", t("loginEmailLabel"));
         setText("loginPasswordLabel", t("loginPasswordLabel"));
         manualLoginButton.textContent = t("loginButton");
-        manualRegisterButton.textContent = t("registerButton");
         setText("loginDividerText", t("loginDivider"));
         microsoftLoginButton.textContent = t("loginWithMicrosoft");
         checkButton.textContent = t("checkButton");
@@ -1137,9 +1185,26 @@
           t("settingsMicrosoftAuthorityInputLabel")
         );
         settingsMicrosoftAuthority.placeholder = t("settingsMicrosoftAuthorityPlaceholder");
+        setText("accountManagementTitle", t("registerAccountTitle"));
+        setText("accountManagementDescription", t("registerAccountDescription"));
+        setText("registerAccountEmailLabel", t("registerAccountEmailLabel"));
+        setText("registerAccountPasswordLabel", t("registerAccountPasswordLabel"));
+        setText("registerAccountRoleLabel", t("registerAccountRoleLabel"));
+        registerAccountEmailInput.placeholder = t("senderEmailPlaceholder");
+        registerAccountPasswordInput.placeholder = t("loginPasswordLabel");
+        registerAccountButton.textContent = t("registerAccountButton");
+        const userOption = registerAccountRoleSelect.querySelector('option[value="user"]');
+        const adminOption = registerAccountRoleSelect.querySelector('option[value="admin"]');
+        if (userOption) {
+          userOption.textContent = t("registerAccountRoleUser");
+        }
+        if (adminOption) {
+          adminOption.textContent = t("registerAccountRoleAdmin");
+        }
         logoutButton.textContent = t("logoutButton");
         saveSettingsButton.textContent = t("saveSettingsButton");
         renderLoginMessage();
+        renderAccountManagementState();
         renderGoogleLoginButton();
         renderChatMessage();
         renderChatNodeOptions();
@@ -1240,17 +1305,32 @@
         loginMessage.textContent = loginMessageState.raw || t("loginReady");
       }
 
+      function isAdminUser() {
+        return String(loginState.role || "").trim().toLowerCase() === "admin";
+      }
+
+      function renderAccountManagementState() {
+        const canManageAccounts = loginState.isAuthenticated && isAdminUser();
+        accountManagementSection.classList.toggle("hidden", !canManageAccounts);
+        accountManagementBadge.className = `preview-status ${canManageAccounts ? "success" : "idle"}`;
+        accountManagementBadge.textContent = canManageAccounts
+          ? t("registerAccountBadgeAdmin")
+          : t("registerAccountBadgeLocked");
+      }
+
       function persistLoginSession(session) {
         loginState = {
           isAuthenticated: true,
           provider: session.provider || "",
-          email: session.email || ""
+          email: session.email || "",
+          role: session.role || ""
         };
         localStorage.setItem(LOGIN_SESSION_STORAGE_KEY, JSON.stringify(loginState));
         loginGate.classList.add("hidden");
         senderEmail.value = session.email || senderEmail.value;
         loginEmailInput.value = session.email || loginEmailInput.value;
         persistSenderFields();
+        renderAccountManagementState();
         renderUploadHistory();
       }
 
@@ -1276,10 +1356,12 @@
         loginState = {
           isAuthenticated: false,
           provider: "",
-          email: ""
+          email: "",
+          role: ""
         };
         localStorage.removeItem(LOGIN_SESSION_STORAGE_KEY);
         loginPasswordInput.value = "";
+        registerAccountPasswordInput.value = "";
         loginGate.classList.remove("hidden");
         setLoginMessageState({ state: "success", raw: t("logoutSuccess") });
         try {
@@ -1295,6 +1377,7 @@
         } catch (error) {
           // Ignore provider logout errors and keep local logout state.
         }
+        renderAccountManagementState();
         syncModalOpenState();
       }
 
@@ -1320,7 +1403,6 @@
 
         setLoginMessageState({ state: "loading", raw: t("loginSending") });
         manualLoginButton.disabled = true;
-        manualRegisterButton.disabled = true;
         microsoftLoginButton.disabled = true;
 
         try {
@@ -1342,13 +1424,13 @@
 
           persistLoginSession({
             provider,
-            email: payload.email || ""
+            email: result.user?.email || payload.email || "",
+            role: result.user?.role || ""
           });
           setLoginMessageState({ state: "success", raw: t("loginSuccess") });
           return result;
         } finally {
           manualLoginButton.disabled = false;
-          manualRegisterButton.disabled = false;
           microsoftLoginButton.disabled = false;
         }
       }
@@ -1358,10 +1440,12 @@
           throw new Error(t("loginWebhookMissing"));
         }
 
-        setLoginMessageState({ state: "loading", raw: t("registerSending") });
-        manualLoginButton.disabled = true;
-        manualRegisterButton.disabled = true;
-        microsoftLoginButton.disabled = true;
+        if (!loginState.isAuthenticated || !isAdminUser()) {
+          throw new Error(t("registerAdminOnly"));
+        }
+
+        setSettingsMessageState({ state: "loading", raw: t("registerSending") });
+        registerAccountButton.disabled = true;
 
         try {
           const response = await fetch("/auth/register", {
@@ -1371,6 +1455,8 @@
             },
             body: JSON.stringify({
               provider: "manual",
+              requesterRole: loginState.role || "",
+              requesterEmail: loginState.email || "",
               ...payload
             })
           });
@@ -1380,12 +1466,10 @@
             throw new Error(result.message || t("registerFailed"));
           }
 
-          setLoginMessageState({ state: "success", raw: t("registerSuccess") });
+          setSettingsMessageState({ state: "success", raw: t("registerSuccess") });
           return result;
         } finally {
-          manualLoginButton.disabled = false;
-          manualRegisterButton.disabled = false;
-          microsoftLoginButton.disabled = false;
+          registerAccountButton.disabled = false;
         }
       }
 
@@ -1405,19 +1489,23 @@
         }
       }
 
-      async function runManualRegister() {
-        const email = loginEmailInput.value.trim().toLowerCase();
-        const password = loginPasswordInput.value;
+      async function runSettingsRegister() {
+        const email = registerAccountEmailInput.value.trim().toLowerCase();
+        const password = registerAccountPasswordInput.value;
+        const role = registerAccountRoleSelect.value || "user";
 
         if (!email || !password) {
-          setLoginMessageState({ state: "error", raw: t("loginManualRequired") });
+          setSettingsMessageState({ state: "error", raw: t("registerAccountRequired") });
           return;
         }
 
         try {
-          await submitRegister({ email, password });
+          await submitRegister({ email, password, role });
+          registerAccountEmailInput.value = "";
+          registerAccountPasswordInput.value = "";
+          registerAccountRoleSelect.value = "user";
         } catch (error) {
-          setLoginMessageState({ state: "error", raw: error.message });
+          setSettingsMessageState({ state: "error", raw: error.message });
         }
       }
 
@@ -3865,8 +3953,8 @@
         await runManualLogin();
       });
 
-      manualRegisterButton.addEventListener("click", async () => {
-        await runManualRegister();
+      registerAccountButton.addEventListener("click", async () => {
+        await runSettingsRegister();
       });
 
       microsoftLoginButton.addEventListener("click", async () => {

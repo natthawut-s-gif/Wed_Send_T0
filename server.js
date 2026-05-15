@@ -898,6 +898,13 @@ app.post("/auth/login", async (req, res) => {
         validateStatus: () => true
       }
     );
+    const userRecord = extractUserRecordFromWebhookBody(webhookResponse.data);
+    const resolvedEmail =
+      (typeof userRecord?.useremail === "string" && userRecord.useremail.trim()) ||
+      (typeof userRecord?.email === "string" && userRecord.email.trim()) ||
+      email;
+    const resolvedRole =
+      typeof userRecord?.role === "string" ? userRecord.role.trim().toLowerCase() : "";
 
     if (webhookResponse.status >= 400) {
       res.status(502).json({
@@ -912,8 +919,6 @@ app.post("/auth/login", async (req, res) => {
     }
 
     if (provider === "manual") {
-      const userRecord = extractUserRecordFromWebhookBody(webhookResponse.data);
-
       const encryptedStoredPassword = extractEncryptedPasswordFromUserRecord(userRecord);
 
       if (!userRecord || !encryptedStoredPassword) {
@@ -947,6 +952,10 @@ app.post("/auth/login", async (req, res) => {
       message: "Login request sent successfully.",
       provider,
       email,
+      user: {
+        email: resolvedEmail,
+        role: resolvedRole
+      },
       webhookStatus: webhookResponse.status,
       webhookBody: webhookResponse.data
     });
@@ -967,6 +976,14 @@ app.post("/auth/register", async (req, res) => {
   const email =
     typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
   const password = typeof req.body?.password === "string" ? req.body.password : "";
+  const requesterRole =
+    typeof req.body?.requesterRole === "string"
+      ? req.body.requesterRole.trim().toLowerCase()
+      : "";
+  const requesterEmail =
+    typeof req.body?.requesterEmail === "string" ? req.body.requesterEmail.trim().toLowerCase() : "";
+  const role = typeof req.body?.role === "string" ? req.body.role.trim().toLowerCase() : "user";
+  const status = req.body?.status ?? 1;
 
   if (!currentLoginWebhookUrl) {
     res.status(500).json({
@@ -992,6 +1009,14 @@ app.post("/auth/register", async (req, res) => {
     return;
   }
 
+  if (requesterRole !== "admin") {
+    res.status(403).json({
+      ok: false,
+      message: "Only admin users can create accounts."
+    });
+    return;
+  }
+
   try {
     const encryptedPassword = encryptPasswordForWebhook(password);
     const webhookResponse = await axios.post(
@@ -1000,7 +1025,11 @@ app.post("/auth/register", async (req, res) => {
         node: "register",
         provider,
         email,
-        pass: encryptedPassword
+        pass: encryptedPassword,
+        role: role || "user",
+        status,
+        requesterRole,
+        requesterEmail
       },
       {
         headers: {
