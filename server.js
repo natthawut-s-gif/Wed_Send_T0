@@ -973,6 +973,8 @@ app.post("/auth/login", async (req, res) => {
 app.post("/auth/register", async (req, res) => {
   const provider =
     typeof req.body?.provider === "string" ? req.body.provider.trim().toLowerCase() : "manual";
+  const username =
+    typeof req.body?.username === "string" ? req.body.username.trim() : "";
   const email =
     typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
   const password = typeof req.body?.password === "string" ? req.body.password : "";
@@ -1001,10 +1003,10 @@ app.post("/auth/register", async (req, res) => {
     return;
   }
 
-  if (!email || !password) {
+  if (!username || !email || !password) {
     res.status(400).json({
       ok: false,
-      message: "Email and password are required."
+      message: "Username, email, and password are required."
     });
     return;
   }
@@ -1024,6 +1026,7 @@ app.post("/auth/register", async (req, res) => {
       {
         node: "register",
         provider,
+        user: username,
         email,
         pass: encryptedPassword,
         role: role || "user",

@@ -328,6 +328,11 @@
             <p id="accountManagementDescription" class="theme-helper"></p>
 
             <label class="field">
+              <span id="registerAccountUsernameLabel"></span>
+              <input id="registerAccountUsernameInput" type="text" autocomplete="off" />
+            </label>
+
+            <label class="field">
               <span id="registerAccountEmailLabel"></span>
               <input id="registerAccountEmailInput" type="email" autocomplete="off" />
             </label>
@@ -838,13 +843,14 @@
             "Only users with the admin role can create additional accounts from this settings panel.",
           registerAccountBadgeAdmin: "Admin only",
           registerAccountBadgeLocked: "Restricted",
+          registerAccountUsernameLabel: "New account username",
           registerAccountEmailLabel: "New account email",
           registerAccountPasswordLabel: "New account password",
           registerAccountRoleLabel: "Account role",
           registerAccountRoleUser: "User",
           registerAccountRoleAdmin: "Admin",
           registerAccountButton: "Create account",
-          registerAccountRequired: "Please enter email and password for the new account.",
+          registerAccountRequired: "Please enter username, email, and password for the new account.",
           logoutSuccess: "Logged out successfully.",
           loginWebhookMissing: "Login webhook is not configured yet.",
           loginGoogleMissing: "Google Login is not configured yet.",
@@ -938,6 +944,7 @@
       const settingsMicrosoftAuthority = document.getElementById("settingsMicrosoftAuthority");
       const accountManagementSection = document.getElementById("accountManagementSection");
       const accountManagementBadge = document.getElementById("accountManagementBadge");
+      const registerAccountUsernameInput = document.getElementById("registerAccountUsernameInput");
       const registerAccountEmailInput = document.getElementById("registerAccountEmailInput");
       const registerAccountPasswordInput = document.getElementById("registerAccountPasswordInput");
       const registerAccountRoleSelect = document.getElementById("registerAccountRoleSelect");
@@ -1187,9 +1194,11 @@
         settingsMicrosoftAuthority.placeholder = t("settingsMicrosoftAuthorityPlaceholder");
         setText("accountManagementTitle", t("registerAccountTitle"));
         setText("accountManagementDescription", t("registerAccountDescription"));
+        setText("registerAccountUsernameLabel", t("registerAccountUsernameLabel"));
         setText("registerAccountEmailLabel", t("registerAccountEmailLabel"));
         setText("registerAccountPasswordLabel", t("registerAccountPasswordLabel"));
         setText("registerAccountRoleLabel", t("registerAccountRoleLabel"));
+        registerAccountUsernameInput.placeholder = t("senderNamePlaceholder");
         registerAccountEmailInput.placeholder = t("senderEmailPlaceholder");
         registerAccountPasswordInput.placeholder = t("loginPasswordLabel");
         registerAccountButton.textContent = t("registerAccountButton");
@@ -1361,6 +1370,7 @@
         };
         localStorage.removeItem(LOGIN_SESSION_STORAGE_KEY);
         loginPasswordInput.value = "";
+        registerAccountUsernameInput.value = "";
         registerAccountPasswordInput.value = "";
         loginGate.classList.remove("hidden");
         setLoginMessageState({ state: "success", raw: t("logoutSuccess") });
@@ -1490,17 +1500,19 @@
       }
 
       async function runSettingsRegister() {
+        const username = registerAccountUsernameInput.value.trim();
         const email = registerAccountEmailInput.value.trim().toLowerCase();
         const password = registerAccountPasswordInput.value;
         const role = registerAccountRoleSelect.value || "user";
 
-        if (!email || !password) {
+        if (!username || !email || !password) {
           setSettingsMessageState({ state: "error", raw: t("registerAccountRequired") });
           return;
         }
 
         try {
-          await submitRegister({ email, password, role });
+          await submitRegister({ username, email, password, role });
+          registerAccountUsernameInput.value = "";
           registerAccountEmailInput.value = "";
           registerAccountPasswordInput.value = "";
           registerAccountRoleSelect.value = "user";
