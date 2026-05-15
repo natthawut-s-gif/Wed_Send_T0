@@ -48,6 +48,9 @@
           <button id="manualLoginButton" type="submit" class="secondary-button secondary-button-dark">
             Sign in
           </button>
+          <button id="manualRegisterButton" type="button" class="secondary-button">
+            Create account
+          </button>
         </form>
 
         <div class="login-divider">
@@ -785,6 +788,7 @@
           loginEmailLabel: "Email",
           loginPasswordLabel: "Password",
           loginButton: "Sign in",
+          registerButton: "Create account",
           loginDivider: "or continue with",
           loginWithGoogle: "Continue with Google",
           loginWithMicrosoft: "Continue with Microsoft",
@@ -793,6 +797,9 @@
           loginSuccess: "Login successful.",
           loginFailed: "Login failed.",
           loginManualRequired: "Please enter both email and password.",
+          registerSending: "Sending register request...",
+          registerSuccess: "Register successful.",
+          registerFailed: "Register failed.",
           loginWebhookMissing: "Login webhook is not configured yet.",
           loginGoogleMissing: "Google Login is not configured yet.",
           loginMicrosoftMissing: "Microsoft Login is not configured yet.",
@@ -822,6 +829,7 @@
       const loginEmailInput = document.getElementById("loginEmailInput");
       const loginPasswordInput = document.getElementById("loginPasswordInput");
       const manualLoginButton = document.getElementById("manualLoginButton");
+      const manualRegisterButton = document.getElementById("manualRegisterButton");
       const microsoftLoginButton = document.getElementById("microsoftLoginButton");
       const googleLoginButtonHost = document.getElementById("googleLoginButtonHost");
       const loginMessage = document.getElementById("loginMessage");
@@ -1053,6 +1061,7 @@
         setText("loginEmailLabel", t("loginEmailLabel"));
         setText("loginPasswordLabel", t("loginPasswordLabel"));
         manualLoginButton.textContent = t("loginButton");
+        manualRegisterButton.textContent = t("registerButton");
         setText("loginDividerText", t("loginDivider"));
         microsoftLoginButton.textContent = t("loginWithMicrosoft");
         checkButton.textContent = t("checkButton");
@@ -1279,6 +1288,7 @@
 
         setLoginMessageState({ state: "loading", raw: t("loginSending") });
         manualLoginButton.disabled = true;
+        manualRegisterButton.disabled = true;
         microsoftLoginButton.disabled = true;
 
         try {
@@ -1306,6 +1316,43 @@
           return result;
         } finally {
           manualLoginButton.disabled = false;
+          manualRegisterButton.disabled = false;
+          microsoftLoginButton.disabled = false;
+        }
+      }
+
+      async function submitRegister(payload) {
+        if (!currentSettingsPayload?.loginWebhookConfigured) {
+          throw new Error(t("loginWebhookMissing"));
+        }
+
+        setLoginMessageState({ state: "loading", raw: t("registerSending") });
+        manualLoginButton.disabled = true;
+        manualRegisterButton.disabled = true;
+        microsoftLoginButton.disabled = true;
+
+        try {
+          const response = await fetch("/auth/register", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              provider: "manual",
+              ...payload
+            })
+          });
+          const result = await response.json();
+
+          if (!response.ok || !result.ok) {
+            throw new Error(result.message || t("registerFailed"));
+          }
+
+          setLoginMessageState({ state: "success", raw: t("registerSuccess") });
+          return result;
+        } finally {
+          manualLoginButton.disabled = false;
+          manualRegisterButton.disabled = false;
           microsoftLoginButton.disabled = false;
         }
       }
@@ -1321,6 +1368,22 @@
 
         try {
           await submitLogin("manual", { email, password });
+        } catch (error) {
+          setLoginMessageState({ state: "error", raw: error.message });
+        }
+      }
+
+      async function runManualRegister() {
+        const email = loginEmailInput.value.trim().toLowerCase();
+        const password = loginPasswordInput.value;
+
+        if (!email || !password) {
+          setLoginMessageState({ state: "error", raw: t("loginManualRequired") });
+          return;
+        }
+
+        try {
+          await submitRegister({ email, password });
         } catch (error) {
           setLoginMessageState({ state: "error", raw: error.message });
         }
@@ -3763,6 +3826,10 @@
       manualLoginForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         await runManualLogin();
+      });
+
+      manualRegisterButton.addEventListener("click", async () => {
+        await runManualRegister();
       });
 
       microsoftLoginButton.addEventListener("click", async () => {

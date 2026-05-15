@@ -384,6 +384,61 @@ function encryptPasswordForWebhook(password) {
   ).toString("base64");
 }
 
+function decryptPasswordFromWebhook(encryptedPayload) {
+  if (!loginPasswordSecret) {
+    throw new Error("LOGIN_PASSWORD_SECRET is not configured.");
+  }
+
+  if (!encryptedPayload) {
+    throw new Error("Encrypted password payload is empty.");
+  }
+
+  const decoded = JSON.parse(Buffer.from(String(encryptedPayload), "base64").toString("utf8"));
+  const key = crypto.createHash("sha256").update(loginPasswordSecret).digest();
+  const decipher = crypto.createDecipheriv(
+    "aes-256-gcm",
+    key,
+    Buffer.from(decoded.iv, "base64")
+  );
+  decipher.setAuthTag(Buffer.from(decoded.authTag, "base64"));
+  const decrypted = Buffer.concat([
+    decipher.update(Buffer.from(decoded.ciphertext, "base64")),
+    decipher.final()
+  ]);
+  return decrypted.toString("utf8");
+}
+
+function extractUserRecordFromWebhookBody(webhookBody) {
+  if (Array.isArray(webhookBody)) {
+    return webhookBody.find((item) => item && typeof item === "object") || null;
+  }
+
+  if (webhookBody && typeof webhookBody === "object") {
+    if (Array.isArray(webhookBody.data)) {
+      return webhookBody.data.find((item) => item && typeof item === "object") || null;
+    }
+
+    if (webhookBody.user && typeof webhookBody.user === "object") {
+      return webhookBody.user;
+    }
+
+    return webhookBody;
+  }
+
+  return null;
+}
+
+function comparePasswords(left, right) {
+  const leftBuffer = Buffer.from(String(left || ""), "utf8");
+  const rightBuffer = Buffer.from(String(right || ""), "utf8");
+
+  if (leftBuffer.length !== rightBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
 async function loadUploadHistory() {
   try {
     const raw = await fs.readFile(uploadHistoryFile, "utf8");
@@ -836,6 +891,35 @@ app.post("/auth/login", async (req, res) => {
       return;
     }
 
+    if (provider === "manual") {
+      const userRecord = extractUserRecordFromWebhookBody(webhookResponse.data);
+
+      if (!userRecord || !userRecord.pass) {
+        res.status(401).json({
+          ok: false,
+          message: "User not found or password data is missing.",
+          provider,
+          email,
+          webhookStatus: webhookResponse.status,
+          webhookBody: webhookResponse.data
+        });
+        return;
+      }
+
+      const storedPassword = decryptPasswordFromWebhook(userRecord.pass);
+      if (!comparePasswords(password, storedPassword)) {
+        res.status(401).json({
+          ok: false,
+          message: "Invalid email or password.",
+          provider,
+          email,
+          webhookStatus: webhookResponse.status,
+          webhookBody: webhookResponse.data
+        });
+        return;
+      }
+    }
+
     res.json({
       ok: true,
       message: "Login request sent successfully.",
@@ -848,6 +932,86 @@ app.post("/auth/login", async (req, res) => {
     res.status(502).json({
       ok: false,
       message: "Failed to reach login webhook.",
+      provider,
+      email,
+      error: error.message
+    });
+  }
+});
+
+app.post("/auth/register", async (req, res) => {
+  const provider =
+    typeof req.body?.provider === "string" ? req.body.provider.trim().toLowerCase() : "manual";
+  const email =
+    typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  const password = typeof req.body?.password === "string" ? req.body.password : "";
+
+  if (!currentLoginWebhookUrl) {
+    res.status(500).json({
+      ok: false,
+      message: "LOGIN_WEBHOOK_URL is not configured."
+    });
+    return;
+  }
+
+  if (provider !== "manual") {
+    res.status(400).json({
+      ok: false,
+      message: "Register currently supports manual provider only."
+    });
+    return;
+  }
+
+  if (!email || !password) {
+    res.status(400).json({
+      ok: false,
+      message: "Email and password are required."
+    });
+    return;
+  }
+
+  try {
+    const encryptedPassword = encryptPasswordForWebhook(password);
+    const webhookResponse = await axios.post(
+      currentLoginWebhookUrl,
+      {
+        node: "register",
+        provider,
+        email,
+        pass: encryptedPassword
+      },
+      {
+        headers: {
+          "Content-Type": "application/json"
+        },
+        validateStatus: () => true
+      }
+    );
+
+    if (webhookResponse.status >= 400) {
+      res.status(502).json({
+        ok: false,
+        message: "Register webhook returned an error.",
+        provider,
+        email,
+        webhookStatus: webhookResponse.status,
+        webhookBody: webhookResponse.data
+      });
+      return;
+    }
+
+    res.json({
+      ok: true,
+      message: "Register request sent successfully.",
+      provider,
+      email,
+      webhookStatus: webhookResponse.status,
+      webhookBody: webhookResponse.data
+    });
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      message: "Failed to reach register webhook.",
       provider,
       email,
       error: error.message
