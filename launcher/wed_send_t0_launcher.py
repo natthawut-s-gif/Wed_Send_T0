@@ -10,8 +10,14 @@ import threading
 import time
 import tkinter as tk
 from pathlib import Path
+from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import ttk
+
+try:
+    import winreg
+except ImportError:  # pragma: no cover
+    winreg = None
 
 
 APP_NAME = "Wed_Send_T0"
@@ -19,6 +25,8 @@ REPO_URL = "https://github.com/natthawut-s-gif/Wed_Send_T0.git"
 REPO_BRANCH = "main"
 
 ACTIVE_SPLASH = None
+STORAGE_ROOT_CACHE: Path | None = None
+REGISTRY_PATH = r"Software\Wed_Send_T0\Launcher"
 
 
 def is_frozen() -> bool:
@@ -40,10 +48,126 @@ def data_home() -> Path:
     return Path.home() / ".local" / "share"
 
 
+def default_launcher_root() -> Path:
+    return data_home() / APP_NAME / "launcher-runtime"
+
+
+def read_windows_launcher_preferences() -> dict:
+    if os.name != "nt" or winreg is None:
+        return {}
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, REGISTRY_PATH) as key:
+            storage_mode, _ = winreg.QueryValueEx(key, "StorageMode")
+            storage_path, _ = winreg.QueryValueEx(key, "StoragePath")
+            return {
+                "storage_mode": str(storage_mode or "").strip(),
+                "storage_path": str(storage_path or "").strip(),
+            }
+    except OSError:
+        return {}
+
+
+def write_windows_launcher_preferences(storage_mode: str, storage_path: str) -> None:
+    if os.name != "nt" or winreg is None:
+        return
+    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, REGISTRY_PATH) as key:
+        winreg.SetValueEx(key, "StorageMode", 0, winreg.REG_SZ, storage_mode)
+        winreg.SetValueEx(key, "StoragePath", 0, winreg.REG_SZ, storage_path)
+
+
+def test_writable_directory(path: Path) -> tuple[bool, str]:
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        probe = path / ".launcher-write-test"
+        probe.write_text("ok\n", encoding="utf-8")
+        probe.unlink(missing_ok=True)
+        return True, ""
+    except OSError as error:
+        return False, str(error)
+
+
+def prompt_for_storage_root(default_path: Path, current_error: str = "") -> Path:
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    message = (
+        "WedSendT0Launcher needs a writable folder to store:\n"
+        "- downloaded runtime code\n"
+        "- logs\n"
+        "- local launcher state\n\n"
+        f"Recommended location:\n{default_path}\n"
+    )
+    if current_error:
+        message += f"\nCurrent issue:\n{current_error}\n"
+    message += "\nAllow this app to write inside your Windows user profile?"
+
+    choice = messagebox.askyesnocancel(
+        "Storage Permission",
+        message,
+        parent=root,
+    )
+    if choice is True:
+        root.destroy()
+        return default_path
+    if choice is None:
+        root.destroy()
+        raise RuntimeError("Storage permission was cancelled by the user.")
+
+    chosen_dir = filedialog.askdirectory(
+        title="Select a writable folder for WedSendT0Launcher data",
+        initialdir=str(Path.home()),
+        parent=root,
+        mustexist=True,
+    )
+    root.destroy()
+    if not chosen_dir:
+        raise RuntimeError("No storage folder was selected.")
+    return Path(chosen_dir) / APP_NAME / "launcher-runtime"
+
+
+def resolve_storage_root(*, interactive: bool) -> Path:
+    global STORAGE_ROOT_CACHE
+    if STORAGE_ROOT_CACHE is not None:
+        return STORAGE_ROOT_CACHE
+
+    default_root = default_launcher_root()
+    prefs = read_windows_launcher_preferences()
+    candidates: list[tuple[str, Path]] = []
+
+    if prefs.get("storage_mode") == "custom" and prefs.get("storage_path"):
+        candidates.append(("custom", Path(prefs["storage_path"])))
+    if prefs.get("storage_mode") in ("", "localappdata"):
+        candidates.append(("localappdata", default_root))
+    if not candidates:
+        candidates.append(("localappdata", default_root))
+
+    last_error = ""
+    for mode, candidate in candidates:
+        ok, error = test_writable_directory(candidate)
+        if ok:
+            STORAGE_ROOT_CACHE = candidate
+            if os.name == "nt":
+                write_windows_launcher_preferences(mode, str(candidate))
+            return candidate
+        last_error = error
+
+    if not interactive:
+        raise RuntimeError(last_error or "No writable launcher storage directory is available.")
+
+    selected_root = prompt_for_storage_root(default_root, last_error)
+    ok, error = test_writable_directory(selected_root)
+    if not ok:
+        raise RuntimeError(f"Selected storage folder is not writable.\n\n{error}")
+
+    STORAGE_ROOT_CACHE = selected_root
+    if os.name == "nt":
+        mode = "localappdata" if selected_root == default_root else "custom"
+        write_windows_launcher_preferences(mode, str(selected_root))
+    return selected_root
+
+
 def launcher_root() -> Path:
-    path = data_home() / APP_NAME / "launcher-runtime"
-    path.mkdir(parents=True, exist_ok=True)
-    return path
+    return resolve_storage_root(interactive=False)
 
 
 def runtime_repo_dir() -> Path:
@@ -82,9 +206,12 @@ def timestamped(message: str) -> str:
 
 def log(message: str) -> None:
     line = timestamped(message)
-    launcher_log_file().parent.mkdir(parents=True, exist_ok=True)
-    with launcher_log_file().open("a", encoding="utf-8") as handle:
-        handle.write(f"{line}\n")
+    try:
+        launcher_log_file().parent.mkdir(parents=True, exist_ok=True)
+        with launcher_log_file().open("a", encoding="utf-8") as handle:
+            handle.write(f"{line}\n")
+    except OSError:
+        pass
     if ACTIVE_SPLASH is not None:
         ACTIVE_SPLASH.post_log(line)
 
@@ -608,6 +735,12 @@ class LauncherSplash:
 def main() -> int:
     if len(sys.argv) > 1 and sys.argv[1].lower().endswith(".py"):
         return run_python_script(Path(sys.argv[1]), sys.argv[2:])
+
+    try:
+        resolve_storage_root(interactive=True)
+    except Exception as error:
+        show_error("Launcher Error", str(error))
+        return 1
 
     global ACTIVE_SPLASH
     splash = LauncherSplash()
