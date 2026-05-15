@@ -10,12 +10,61 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap"
       rel="stylesheet"
     />
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script
+      src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"
+      defer
+    ></script>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <div id="loginGate" class="login-gate">
+      <section class="login-card" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+        <div class="login-head">
+          <div class="eyebrow" id="loginEyebrow">Secure Access</div>
+          <h2 id="loginTitle">Sign in to continue</h2>
+          <p id="loginIntro" class="intro login-intro"></p>
+        </div>
+
+        <form id="manualLoginForm" class="modal-form">
+          <label class="field">
+            <span id="loginEmailLabel">Email</span>
+            <input id="loginEmailInput" type="email" autocomplete="username" required />
+          </label>
+
+          <label class="field">
+            <span id="loginPasswordLabel">Password</span>
+            <input
+              id="loginPasswordInput"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+          </label>
+
+          <button id="manualLoginButton" type="submit" class="secondary-button secondary-button-dark">
+            Sign in
+          </button>
+        </form>
+
+        <div class="login-divider">
+          <span id="loginDividerText">or continue with</span>
+        </div>
+
+        <div class="login-provider-grid">
+          <div id="googleLoginButtonHost" class="provider-slot"></div>
+          <button id="microsoftLoginButton" type="button" class="secondary-button">
+            Continue with Microsoft
+          </button>
+        </div>
+
+        <div id="loginMessage" class="settings-message idle"></div>
+      </section>
+    </div>
+
     <main class="page-shell">
       <section class="card">
         <div class="topbar">
@@ -179,6 +228,14 @@
 
             <article class="settings-status-card">
               <div class="settings-status-head">
+                <span id="settingsLoginWebhookStatusLabel"></span>
+                <em id="currentLoginWebhookStatus" class="preview-status idle"></em>
+              </div>
+              <strong id="currentLoginWebhookUrl"></strong>
+            </article>
+
+            <article class="settings-status-card">
+              <div class="settings-status-head">
                 <span id="settingsVersionStatusLabel"></span>
                 <em class="preview-status success" id="currentVersionStatus"></em>
               </div>
@@ -241,6 +298,26 @@
           <label class="field">
             <span id="settingsCommandWebhookInputLabel"></span>
             <input id="settingsCommandWebhookUrl" type="url" name="commandWebhookUrl" required />
+          </label>
+
+          <label class="field">
+            <span id="settingsLoginWebhookInputLabel"></span>
+            <input id="settingsLoginWebhookUrl" type="url" name="loginWebhookUrl" />
+          </label>
+
+          <label class="field">
+            <span id="settingsGoogleClientIdInputLabel"></span>
+            <input id="settingsGoogleClientId" type="text" name="googleClientId" />
+          </label>
+
+          <label class="field">
+            <span id="settingsMicrosoftClientIdInputLabel"></span>
+            <input id="settingsMicrosoftClientId" type="text" name="microsoftClientId" />
+          </label>
+
+          <label class="field">
+            <span id="settingsMicrosoftAuthorityInputLabel"></span>
+            <input id="settingsMicrosoftAuthority" type="url" name="microsoftAuthority" />
           </label>
 
           <div id="settingsMessage" class="settings-message idle"></div>
@@ -701,7 +778,36 @@
           historyEmpty: "No uploaded documents yet.",
           historyLoadFailed: "Could not load upload history.",
           clearHistoryButton: "Clear History",
-          clearHistoryFailed: "Could not clear upload history."
+          clearHistoryFailed: "Could not clear upload history.",
+          loginTitle: "Sign in to continue",
+          loginIntro:
+            "Use your work email, Google, or Microsoft account before accessing uploads and exports.",
+          loginEmailLabel: "Email",
+          loginPasswordLabel: "Password",
+          loginButton: "Sign in",
+          loginDivider: "or continue with",
+          loginWithGoogle: "Continue with Google",
+          loginWithMicrosoft: "Continue with Microsoft",
+          loginReady: "Choose a sign-in method.",
+          loginSending: "Sending login request...",
+          loginSuccess: "Login successful.",
+          loginFailed: "Login failed.",
+          loginManualRequired: "Please enter both email and password.",
+          loginWebhookMissing: "Login webhook is not configured yet.",
+          loginGoogleMissing: "Google Login is not configured yet.",
+          loginMicrosoftMissing: "Microsoft Login is not configured yet.",
+          settingsLoginWebhookStatusLabel: "Login Webhook URL",
+          settingsLoginWebhookInputLabel: "Login Webhook URL",
+          settingsLoginWebhookPlaceholder: "https://your-domain/webhook/login",
+          settingsGoogleClientIdInputLabel: "Google Client ID",
+          settingsGoogleClientIdPlaceholder:
+            "Google OAuth client ID for the Google sign-in button",
+          settingsMicrosoftClientIdInputLabel: "Microsoft Client ID",
+          settingsMicrosoftClientIdPlaceholder:
+            "Microsoft Entra app client ID for loginPopup",
+          settingsMicrosoftAuthorityInputLabel: "Microsoft Authority",
+          settingsMicrosoftAuthorityPlaceholder:
+            "https://login.microsoftonline.com/common"
         }
       };
 
@@ -711,6 +817,14 @@
       const senderNameInput = document.getElementById("senderNameInput");
       const senderEmail = document.getElementById("senderEmail");
       const noteInput = document.getElementById("noteInput");
+      const loginGate = document.getElementById("loginGate");
+      const manualLoginForm = document.getElementById("manualLoginForm");
+      const loginEmailInput = document.getElementById("loginEmailInput");
+      const loginPasswordInput = document.getElementById("loginPasswordInput");
+      const manualLoginButton = document.getElementById("manualLoginButton");
+      const microsoftLoginButton = document.getElementById("microsoftLoginButton");
+      const googleLoginButtonHost = document.getElementById("googleLoginButtonHost");
+      const loginMessage = document.getElementById("loginMessage");
       const checkButton = document.getElementById("checkButton");
       const exportButton = document.getElementById("exportButton");
       const checkResponseCard = document.getElementById("checkResponseCard");
@@ -764,6 +878,12 @@
       const currentActionWebhookStatus = document.getElementById("currentActionWebhookStatus");
       const currentCommandWebhookUrl = document.getElementById("currentCommandWebhookUrl");
       const currentCommandWebhookStatus = document.getElementById("currentCommandWebhookStatus");
+      const settingsLoginWebhookUrl = document.getElementById("settingsLoginWebhookUrl");
+      const settingsGoogleClientId = document.getElementById("settingsGoogleClientId");
+      const settingsMicrosoftClientId = document.getElementById("settingsMicrosoftClientId");
+      const settingsMicrosoftAuthority = document.getElementById("settingsMicrosoftAuthority");
+      const currentLoginWebhookUrl = document.getElementById("currentLoginWebhookUrl");
+      const currentLoginWebhookStatus = document.getElementById("currentLoginWebhookStatus");
       const appVersionText = document.getElementById("appVersionText");
       const currentAppVersionValue = document.getElementById("currentAppVersionValue");
       const currentVersionStatus = document.getElementById("currentVersionStatus");
@@ -773,6 +893,7 @@
       const englishLanguageButton = document.getElementById("englishLanguageButton");
       const historyList = document.getElementById("historyList");
       const clearHistoryButton = document.getElementById("clearHistoryButton");
+      const LOGIN_SESSION_STORAGE_KEY = "invoice-extraction-login-session";
 
       let selectedFiles = [];
       let currentTheme = "light";
@@ -780,6 +901,13 @@
       let currentSettingsPayload = null;
       let currentAppVersion = "";
       let uploadHistoryItems = [];
+      let currentMsalApp = null;
+      let googleLoginRendered = false;
+      let loginState = {
+        isAuthenticated: false,
+        provider: "",
+        email: ""
+      };
       let statusState = { type: "idle" };
       let chatMessageState = {
         state: "idle",
@@ -803,6 +931,10 @@
         state: "idle",
         key: "settingsLoadingCurrent",
         raw: null
+      };
+      let loginMessageState = {
+        state: "idle",
+        raw: ""
       };
 
       function t(key, vars = {}) {
@@ -863,6 +995,9 @@
         darkThemeButton.classList.toggle("active", currentTheme === "dark");
         lightThemeButton.setAttribute("aria-pressed", String(currentTheme === "light"));
         darkThemeButton.setAttribute("aria-pressed", String(currentTheme === "dark"));
+        if (currentSettingsPayload) {
+          renderGoogleLoginButton();
+        }
       }
 
       function applyLanguage(language) {
@@ -895,6 +1030,7 @@
       function initializeSenderFields() {
         senderNameInput.value = localStorage.getItem(SENDER_NAME_STORAGE_KEY) || "";
         senderEmail.value = localStorage.getItem(SENDER_EMAIL_STORAGE_KEY) || "";
+        loginEmailInput.value = senderEmail.value;
       }
 
       function persistSenderFields() {
@@ -912,6 +1048,13 @@
         senderNameInput.placeholder = t("senderNamePlaceholder");
         setText("senderEmailLabel", t("senderEmailLabel"));
         senderEmail.placeholder = t("senderEmailPlaceholder");
+        setText("loginTitle", t("loginTitle"));
+        setText("loginIntro", t("loginIntro"));
+        setText("loginEmailLabel", t("loginEmailLabel"));
+        setText("loginPasswordLabel", t("loginPasswordLabel"));
+        manualLoginButton.textContent = t("loginButton");
+        setText("loginDividerText", t("loginDivider"));
+        microsoftLoginButton.textContent = t("loginWithMicrosoft");
         checkButton.textContent = t("checkButton");
         exportButton.textContent = t("exportButton");
         setText("checkResponseTitle", t("checkResponseTitle"));
@@ -951,6 +1094,7 @@
         setText("settingsWebhookStatusLabel", t("settingsWebhookStatusLabel"));
         setText("settingsActionWebhookStatusLabel", t("settingsActionWebhookStatusLabel"));
         setText("settingsCommandWebhookStatusLabel", t("settingsCommandWebhookStatusLabel"));
+        setText("settingsLoginWebhookStatusLabel", t("settingsLoginWebhookStatusLabel"));
         setText("settingsVersionStatusLabel", t("settingsVersionStatusLabel"));
         setText("themeSectionLabel", t("themeLabel"));
         lightThemeButton.textContent = t("themeLight");
@@ -966,7 +1110,23 @@
         settingsActionWebhookUrl.placeholder = t("settingsActionWebhookPlaceholder");
         setText("settingsCommandWebhookInputLabel", t("settingsCommandWebhookInputLabel"));
         settingsCommandWebhookUrl.placeholder = t("settingsCommandWebhookPlaceholder");
+        setText("settingsLoginWebhookInputLabel", t("settingsLoginWebhookInputLabel"));
+        settingsLoginWebhookUrl.placeholder = t("settingsLoginWebhookPlaceholder");
+        setText("settingsGoogleClientIdInputLabel", t("settingsGoogleClientIdInputLabel"));
+        settingsGoogleClientId.placeholder = t("settingsGoogleClientIdPlaceholder");
+        setText(
+          "settingsMicrosoftClientIdInputLabel",
+          t("settingsMicrosoftClientIdInputLabel")
+        );
+        settingsMicrosoftClientId.placeholder = t("settingsMicrosoftClientIdPlaceholder");
+        setText(
+          "settingsMicrosoftAuthorityInputLabel",
+          t("settingsMicrosoftAuthorityInputLabel")
+        );
+        settingsMicrosoftAuthority.placeholder = t("settingsMicrosoftAuthorityPlaceholder");
         saveSettingsButton.textContent = t("saveSettingsButton");
+        renderLoginMessage();
+        renderGoogleLoginButton();
         renderChatMessage();
         renderChatNodeOptions();
         renderChatResponse();
@@ -999,6 +1159,9 @@
           currentCommandWebhookStatus.className = "preview-status idle";
           currentCommandWebhookStatus.textContent = t("statusChecking");
           currentCommandWebhookUrl.textContent = t("loading");
+          currentLoginWebhookStatus.className = "preview-status idle";
+          currentLoginWebhookStatus.textContent = t("statusChecking");
+          currentLoginWebhookUrl.textContent = t("loading");
           currentVersionStatus.className = "preview-status idle";
           currentVersionStatus.textContent = t("loading");
           currentAppVersionValue.textContent = formatVersionText(currentAppVersion);
@@ -1013,6 +1176,8 @@
         currentActionWebhookUrl.title = currentSettingsPayload.actionWebhookUrl || "";
         currentCommandWebhookUrl.textContent = shortenUrl(currentSettingsPayload.commandWebhookUrl);
         currentCommandWebhookUrl.title = currentSettingsPayload.commandWebhookUrl || "";
+        currentLoginWebhookUrl.textContent = shortenUrl(currentSettingsPayload.loginWebhookUrl);
+        currentLoginWebhookUrl.title = currentSettingsPayload.loginWebhookUrl || "";
         currentWebhookStatus.className = `preview-status ${
           currentSettingsPayload.webhookConfigured ? "success" : "error"
         }`;
@@ -1031,6 +1196,12 @@
         currentCommandWebhookStatus.textContent = currentSettingsPayload.commandWebhookConfigured
           ? t("statusConfigured")
           : t("statusNotConfigured");
+        currentLoginWebhookStatus.className = `preview-status ${
+          currentSettingsPayload.loginWebhookConfigured ? "success" : "error"
+        }`;
+        currentLoginWebhookStatus.textContent = currentSettingsPayload.loginWebhookConfigured
+          ? t("statusConfigured")
+          : t("statusNotConfigured");
         currentVersionStatus.className = "preview-status success";
         renderVersionInfo();
       }
@@ -1043,6 +1214,217 @@
       function renderSettingsMessage() {
         settingsMessage.className = `settings-message ${settingsMessageState.state}`;
         settingsMessage.textContent = settingsMessageState.raw || t(settingsMessageState.key);
+      }
+
+      function setLoginMessageState({ state = "idle", raw = "" }) {
+        loginMessageState = { state, raw };
+        renderLoginMessage();
+      }
+
+      function renderLoginMessage() {
+        loginMessage.className = `settings-message ${loginMessageState.state}`;
+        loginMessage.textContent = loginMessageState.raw || t("loginReady");
+      }
+
+      function persistLoginSession(session) {
+        loginState = {
+          isAuthenticated: true,
+          provider: session.provider || "",
+          email: session.email || ""
+        };
+        sessionStorage.setItem(LOGIN_SESSION_STORAGE_KEY, JSON.stringify(loginState));
+        loginGate.classList.add("hidden");
+        senderEmail.value = session.email || senderEmail.value;
+        persistSenderFields();
+        renderUploadHistory();
+      }
+
+      function loadLoginSession() {
+        try {
+          const raw = sessionStorage.getItem(LOGIN_SESSION_STORAGE_KEY);
+          if (!raw) {
+            return;
+          }
+
+          const session = JSON.parse(raw);
+          if (!session || !session.email) {
+            return;
+          }
+
+          persistLoginSession(session);
+        } catch (error) {
+          sessionStorage.removeItem(LOGIN_SESSION_STORAGE_KEY);
+        }
+      }
+
+      function decodeJwtPayload(token) {
+        if (!token || typeof token !== "string" || !token.includes(".")) {
+          return null;
+        }
+
+        try {
+          const payload = token.split(".")[1];
+          const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+          const decoded = atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="));
+          return JSON.parse(decoded);
+        } catch (error) {
+          return null;
+        }
+      }
+
+      async function submitLogin(provider, payload) {
+        if (!currentSettingsPayload?.loginWebhookConfigured) {
+          throw new Error(t("loginWebhookMissing"));
+        }
+
+        setLoginMessageState({ state: "loading", raw: t("loginSending") });
+        manualLoginButton.disabled = true;
+        microsoftLoginButton.disabled = true;
+
+        try {
+          const response = await fetch("/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              provider,
+              ...payload
+            })
+          });
+          const result = await response.json();
+
+          if (!response.ok || !result.ok) {
+            throw new Error(result.message || t("loginFailed"));
+          }
+
+          persistLoginSession({
+            provider,
+            email: payload.email || ""
+          });
+          setLoginMessageState({ state: "success", raw: t("loginSuccess") });
+          return result;
+        } finally {
+          manualLoginButton.disabled = false;
+          microsoftLoginButton.disabled = false;
+        }
+      }
+
+      async function runManualLogin() {
+        const email = loginEmailInput.value.trim().toLowerCase();
+        const password = loginPasswordInput.value;
+
+        if (!email || !password) {
+          setLoginMessageState({ state: "error", raw: t("loginManualRequired") });
+          return;
+        }
+
+        try {
+          await submitLogin("manual", { email, password });
+        } catch (error) {
+          setLoginMessageState({ state: "error", raw: error.message });
+        }
+      }
+
+      async function runGoogleLogin(response) {
+        try {
+          const payload = decodeJwtPayload(response?.credential || "");
+          const email = payload?.email || "";
+
+          if (!email) {
+            throw new Error(t("loginFailed"));
+          }
+
+          await submitLogin("google", {
+            email,
+            idToken: response.credential || ""
+          });
+        } catch (error) {
+          setLoginMessageState({ state: "error", raw: error.message });
+        }
+      }
+
+      async function runMicrosoftLogin() {
+        if (!currentSettingsPayload?.microsoftLoginConfigured) {
+          setLoginMessageState({ state: "error", raw: t("loginMicrosoftMissing") });
+          return;
+        }
+
+        if (!window.msal?.PublicClientApplication) {
+          setLoginMessageState({ state: "error", raw: "Microsoft login library is unavailable." });
+          return;
+        }
+
+        try {
+          if (!currentMsalApp) {
+            currentMsalApp = new window.msal.PublicClientApplication({
+              auth: {
+                clientId: currentSettingsPayload.microsoftClientId,
+                authority:
+                  currentSettingsPayload.microsoftAuthority ||
+                  "https://login.microsoftonline.com/common",
+                redirectUri: window.location.origin
+              }
+            });
+            await currentMsalApp.initialize();
+          }
+
+          const result = await currentMsalApp.loginPopup({
+            scopes: ["openid", "profile", "email"]
+          });
+          const email = result?.account?.username || "";
+
+          if (!email) {
+            throw new Error(t("loginFailed"));
+          }
+
+          await submitLogin("microsoft", {
+            email,
+            idToken: result.idToken || "",
+            accessToken: result.accessToken || ""
+          });
+        } catch (error) {
+          setLoginMessageState({ state: "error", raw: error.message || t("loginFailed") });
+        }
+      }
+
+      function renderGoogleLoginButton() {
+        googleLoginButtonHost.innerHTML = "";
+        googleLoginRendered = false;
+
+        if (!currentSettingsPayload?.googleLoginConfigured) {
+          const fallbackButton = document.createElement("button");
+          fallbackButton.type = "button";
+          fallbackButton.className = "secondary-button";
+          fallbackButton.textContent = t("loginWithGoogle");
+          fallbackButton.disabled = true;
+          googleLoginButtonHost.appendChild(fallbackButton);
+          return;
+        }
+
+        if (!window.google?.accounts?.id) {
+          const fallbackButton = document.createElement("button");
+          fallbackButton.type = "button";
+          fallbackButton.className = "secondary-button";
+          fallbackButton.textContent = t("loginWithGoogle");
+          fallbackButton.disabled = true;
+          googleLoginButtonHost.appendChild(fallbackButton);
+          return;
+        }
+
+        window.google.accounts.id.initialize({
+          client_id: currentSettingsPayload.googleClientId,
+          callback: runGoogleLogin
+        });
+        window.google.accounts.id.renderButton(googleLoginButtonHost, {
+          theme: currentTheme === "dark" ? "filled_black" : "outline",
+          size: "large",
+          type: "standard",
+          shape: "pill",
+          text: "continue_with",
+          width: 320
+        });
+        googleLoginRendered = true;
       }
 
       function setChatMessageState({ state = "idle", key = null, raw = null }) {
@@ -1173,7 +1555,13 @@
           settingsWebhookUrl.value = result.webhookUrl || "";
           settingsActionWebhookUrl.value = result.actionWebhookUrl || "";
           settingsCommandWebhookUrl.value = result.commandWebhookUrl || "";
+          settingsLoginWebhookUrl.value = result.loginWebhookUrl || "";
+          settingsGoogleClientId.value = result.googleClientId || "";
+          settingsMicrosoftClientId.value = result.microsoftClientId || "";
+          settingsMicrosoftAuthority.value =
+            result.microsoftAuthority || "https://login.microsoftonline.com/common";
           renderSettingsStatus();
+          renderGoogleLoginButton();
           setSettingsMessageState({ state: "idle", key: "settingsReady" });
         } catch (error) {
           setSettingsMessageState({ state: "error", raw: error.message });
@@ -3253,6 +3641,12 @@
         }
       });
 
+      window.addEventListener("load", () => {
+        if (currentSettingsPayload) {
+          renderGoogleLoginButton();
+        }
+      });
+
       lightThemeButton.addEventListener("click", () => {
         applyTheme("light");
       });
@@ -3271,6 +3665,7 @@
 
       senderNameInput.addEventListener("input", persistSenderFields);
       senderEmail.addEventListener("input", () => {
+        loginEmailInput.value = senderEmail.value;
         persistSenderFields();
         renderUploadHistory();
       });
@@ -3290,7 +3685,11 @@
             body: JSON.stringify({
               webhookUrl: settingsWebhookUrl.value.trim(),
               actionWebhookUrl: settingsActionWebhookUrl.value.trim(),
-              commandWebhookUrl: settingsCommandWebhookUrl.value.trim()
+              commandWebhookUrl: settingsCommandWebhookUrl.value.trim(),
+              loginWebhookUrl: settingsLoginWebhookUrl.value.trim(),
+              googleClientId: settingsGoogleClientId.value.trim(),
+              microsoftClientId: settingsMicrosoftClientId.value.trim(),
+              microsoftAuthority: settingsMicrosoftAuthority.value.trim()
             })
           });
 
@@ -3302,6 +3701,7 @@
 
           currentSettingsPayload = result;
           renderSettingsStatus();
+          renderGoogleLoginButton();
           setSettingsMessageState({ state: "success", key: "settingsSaved" });
         } catch (error) {
           setSettingsMessageState({ state: "error", raw: error.message });
@@ -3358,6 +3758,15 @@
 
       closeExportModalButton.addEventListener("click", () => {
         closeExportPreviewModal();
+      });
+
+      manualLoginForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        await runManualLogin();
+      });
+
+      microsoftLoginButton.addEventListener("click", async () => {
+        await runMicrosoftLogin();
       });
 
       editExportButton.addEventListener("click", () => {
@@ -3644,6 +4053,8 @@
       initializeTheme();
       initializeLanguage();
       initializeSenderFields();
+      loadLoginSession();
+      renderLoginMessage();
       loadSettings();
       loadUploadHistory();
     </script>

@@ -3,6 +3,7 @@ require("dotenv").config();
 const fs = require("fs/promises");
 const os = require("os");
 const path = require("path");
+const crypto = require("crypto");
 const { promisify } = require("util");
 const { execFile, spawn } = require("child_process");
 const express = require("express");
@@ -28,6 +29,12 @@ const uploadHistoryFile = process.env.UPLOAD_HISTORY_FILE
 const defaultWebhookUrl = process.env.N8N_WEBHOOK_URL || "";
 const defaultExportDocWebhookUrl = process.env.EXPORT_DOC_WEBHOOK_URL || "";
 const defaultCommandWebhookUrl = process.env.COMMAND_WEBHOOK_URL || "";
+const defaultLoginWebhookUrl = process.env.LOGIN_WEBHOOK_URL || "";
+const defaultGoogleClientId = process.env.GOOGLE_CLIENT_ID || "";
+const defaultMicrosoftClientId = process.env.MICROSOFT_CLIENT_ID || "";
+const defaultMicrosoftAuthority =
+  process.env.MICROSOFT_AUTHORITY || "https://login.microsoftonline.com/common";
+const loginPasswordSecret = process.env.LOGIN_PASSWORD_SECRET || "";
 const uploadHistoryLimit = Number(process.env.UPLOAD_HISTORY_LIMIT || 100);
 const maxFiles = Number(process.env.MAX_FILES || 10);
 const maxFileSizeMb = Number(process.env.MAX_FILE_SIZE_MB || 10);
@@ -40,6 +47,10 @@ const appVersion = packageJson.version || "0.0.0";
 let currentWebhookUrl = defaultWebhookUrl;
 let currentExportDocWebhookUrl = defaultExportDocWebhookUrl;
 let currentCommandWebhookUrl = defaultCommandWebhookUrl;
+let currentLoginWebhookUrl = defaultLoginWebhookUrl;
+let currentGoogleClientId = defaultGoogleClientId;
+let currentMicrosoftClientId = defaultMicrosoftClientId;
+let currentMicrosoftAuthority = defaultMicrosoftAuthority;
 let uploadHistory = [];
 const uploadProgressStore = new Map();
 
@@ -128,7 +139,20 @@ function getWebhookSettings() {
   return {
     webhookUrl: currentWebhookUrl,
     actionWebhookUrl: currentExportDocWebhookUrl,
-    commandWebhookUrl: currentCommandWebhookUrl
+    commandWebhookUrl: currentCommandWebhookUrl,
+    loginWebhookUrl: currentLoginWebhookUrl,
+    googleClientId: currentGoogleClientId,
+    microsoftClientId: currentMicrosoftClientId,
+    microsoftAuthority: currentMicrosoftAuthority
+  };
+}
+
+function getAuthSettings() {
+  return {
+    loginWebhookConfigured: Boolean(currentLoginWebhookUrl),
+    googleLoginConfigured: Boolean(currentGoogleClientId),
+    microsoftLoginConfigured: Boolean(currentMicrosoftClientId),
+    loginPasswordEncryptionConfigured: Boolean(loginPasswordSecret)
   };
 }
 
@@ -223,6 +247,16 @@ function sanitizeWebhookSettings(payload) {
     typeof payload?.actionWebhookUrl === "string" ? payload.actionWebhookUrl.trim() : "";
   const commandWebhookUrl =
     typeof payload?.commandWebhookUrl === "string" ? payload.commandWebhookUrl.trim() : "";
+  const loginWebhookUrl =
+    typeof payload?.loginWebhookUrl === "string" ? payload.loginWebhookUrl.trim() : "";
+  const googleClientId =
+    typeof payload?.googleClientId === "string" ? payload.googleClientId.trim() : "";
+  const microsoftClientId =
+    typeof payload?.microsoftClientId === "string" ? payload.microsoftClientId.trim() : "";
+  const microsoftAuthority =
+    typeof payload?.microsoftAuthority === "string"
+      ? payload.microsoftAuthority.trim()
+      : defaultMicrosoftAuthority;
 
   for (const [label, value] of [
     ["Webhook URL", webhookUrl],
@@ -245,10 +279,40 @@ function sanitizeWebhookSettings(payload) {
     }
   }
 
+  if (loginWebhookUrl) {
+    let parsedLoginWebhookUrl;
+    try {
+      parsedLoginWebhookUrl = new URL(loginWebhookUrl);
+    } catch (error) {
+      throw new Error("Login Webhook URL must be a valid URL.");
+    }
+
+    if (!["http:", "https:"].includes(parsedLoginWebhookUrl.protocol)) {
+      throw new Error("Login Webhook URL must start with http:// or https://");
+    }
+  }
+
+  if (microsoftAuthority) {
+    let parsedMicrosoftAuthority;
+    try {
+      parsedMicrosoftAuthority = new URL(microsoftAuthority);
+    } catch (error) {
+      throw new Error("Microsoft Authority must be a valid URL.");
+    }
+
+    if (!["http:", "https:"].includes(parsedMicrosoftAuthority.protocol)) {
+      throw new Error("Microsoft Authority must start with http:// or https://");
+    }
+  }
+
   return {
     webhookUrl,
     actionWebhookUrl,
-    commandWebhookUrl
+    commandWebhookUrl,
+    loginWebhookUrl,
+    googleClientId,
+    microsoftClientId,
+    microsoftAuthority: microsoftAuthority || defaultMicrosoftAuthority
   };
 }
 
@@ -259,12 +323,20 @@ async function loadWebhookSettings() {
     currentWebhookUrl = parsed.webhookUrl;
     currentExportDocWebhookUrl = parsed.actionWebhookUrl;
     currentCommandWebhookUrl = parsed.commandWebhookUrl;
+    currentLoginWebhookUrl = parsed.loginWebhookUrl;
+    currentGoogleClientId = parsed.googleClientId;
+    currentMicrosoftClientId = parsed.microsoftClientId;
+    currentMicrosoftAuthority = parsed.microsoftAuthority;
   } catch (error) {
     if (error.code === "ENOENT") {
       await saveWebhookSettings({
         webhookUrl: currentWebhookUrl,
         actionWebhookUrl: currentExportDocWebhookUrl,
-        commandWebhookUrl: currentCommandWebhookUrl
+        commandWebhookUrl: currentCommandWebhookUrl,
+        loginWebhookUrl: currentLoginWebhookUrl,
+        googleClientId: currentGoogleClientId,
+        microsoftClientId: currentMicrosoftClientId,
+        microsoftAuthority: currentMicrosoftAuthority
       });
       return;
     }
@@ -280,7 +352,36 @@ async function saveWebhookSettings(payload) {
   currentWebhookUrl = sanitized.webhookUrl;
   currentExportDocWebhookUrl = sanitized.actionWebhookUrl;
   currentCommandWebhookUrl = sanitized.commandWebhookUrl;
+  currentLoginWebhookUrl = sanitized.loginWebhookUrl;
+  currentGoogleClientId = sanitized.googleClientId;
+  currentMicrosoftClientId = sanitized.microsoftClientId;
+  currentMicrosoftAuthority = sanitized.microsoftAuthority;
   return sanitized;
+}
+
+function encryptPasswordForWebhook(password) {
+  if (!loginPasswordSecret) {
+    throw new Error("LOGIN_PASSWORD_SECRET is not configured.");
+  }
+
+  const key = crypto.createHash("sha256").update(loginPasswordSecret).digest();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+  const encrypted = Buffer.concat([
+    cipher.update(String(password || ""), "utf8"),
+    cipher.final()
+  ]);
+  const authTag = cipher.getAuthTag();
+
+  return Buffer.from(
+    JSON.stringify({
+      algorithm: "aes-256-gcm",
+      iv: iv.toString("base64"),
+      authTag: authTag.toString("base64"),
+      ciphertext: encrypted.toString("base64")
+    }),
+    "utf8"
+  ).toString("base64");
 }
 
 async function loadUploadHistory() {
@@ -575,6 +676,7 @@ app.get("/health", (req, res) => {
     webhookConfigured: Boolean(currentWebhookUrl),
     exportDocWebhookConfigured: Boolean(currentExportDocWebhookUrl),
     commandWebhookConfigured: Boolean(currentCommandWebhookUrl),
+    ...getAuthSettings(),
     maxFiles,
     maxFileSizeMb,
     maxTotalUploadMb,
@@ -589,7 +691,8 @@ app.get("/settings/webhooks", (req, res) => {
     ...getWebhookSettings(),
     webhookConfigured: Boolean(currentWebhookUrl),
     actionWebhookConfigured: Boolean(currentExportDocWebhookUrl),
-    commandWebhookConfigured: Boolean(currentCommandWebhookUrl)
+    commandWebhookConfigured: Boolean(currentCommandWebhookUrl),
+    ...getAuthSettings()
   });
 });
 
@@ -648,12 +751,106 @@ app.post("/settings/webhooks", async (req, res) => {
       ...saved,
       webhookConfigured: Boolean(saved.webhookUrl),
       actionWebhookConfigured: Boolean(saved.actionWebhookUrl),
-      commandWebhookConfigured: Boolean(saved.commandWebhookUrl)
+      commandWebhookConfigured: Boolean(saved.commandWebhookUrl),
+      ...getAuthSettings()
     });
   } catch (error) {
     res.status(400).json({
       ok: false,
       message: error.message
+    });
+  }
+});
+
+app.post("/auth/login", async (req, res) => {
+  const provider =
+    typeof req.body?.provider === "string" ? req.body.provider.trim().toLowerCase() : "";
+  const email =
+    typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  const password = typeof req.body?.password === "string" ? req.body.password : "";
+  const idToken = typeof req.body?.idToken === "string" ? req.body.idToken.trim() : "";
+  const accessToken =
+    typeof req.body?.accessToken === "string" ? req.body.accessToken.trim() : "";
+
+  if (!currentLoginWebhookUrl) {
+    res.status(500).json({
+      ok: false,
+      message: "LOGIN_WEBHOOK_URL is not configured."
+    });
+    return;
+  }
+
+  if (!["manual", "google", "microsoft"].includes(provider)) {
+    res.status(400).json({
+      ok: false,
+      message: "Unsupported login provider."
+    });
+    return;
+  }
+
+  if (!email) {
+    res.status(400).json({
+      ok: false,
+      message: "Email is required."
+    });
+    return;
+  }
+
+  if (provider === "manual" && !password) {
+    res.status(400).json({
+      ok: false,
+      message: "Password is required for manual login."
+    });
+    return;
+  }
+
+  try {
+    const encryptedPassword = provider === "manual" ? encryptPasswordForWebhook(password) : "";
+    const webhookResponse = await axios.post(
+      currentLoginWebhookUrl,
+      {
+        node: "login",
+        provider,
+        email,
+        pass: encryptedPassword,
+        ...(idToken ? { idToken } : {}),
+        ...(accessToken ? { accessToken } : {})
+      },
+      {
+        headers: {
+          "Content-Type": "application/json"
+        },
+        validateStatus: () => true
+      }
+    );
+
+    if (webhookResponse.status >= 400) {
+      res.status(502).json({
+        ok: false,
+        message: "Login webhook returned an error.",
+        provider,
+        email,
+        webhookStatus: webhookResponse.status,
+        webhookBody: webhookResponse.data
+      });
+      return;
+    }
+
+    res.json({
+      ok: true,
+      message: "Login request sent successfully.",
+      provider,
+      email,
+      webhookStatus: webhookResponse.status,
+      webhookBody: webhookResponse.data
+    });
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      message: "Failed to reach login webhook.",
+      provider,
+      email,
+      error: error.message
     });
   }
 });
