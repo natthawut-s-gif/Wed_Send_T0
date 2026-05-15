@@ -428,6 +428,26 @@ function extractUserRecordFromWebhookBody(webhookBody) {
   return null;
 }
 
+function extractEncryptedPasswordFromUserRecord(userRecord) {
+  if (!userRecord || typeof userRecord !== "object") {
+    return "";
+  }
+
+  if (typeof userRecord.pass === "string" && userRecord.pass.trim()) {
+    return userRecord.pass.trim();
+  }
+
+  if (typeof userRecord.password === "string" && userRecord.password.trim()) {
+    return userRecord.password.trim();
+  }
+
+  if (typeof userRecord.passwordEncrypted === "string" && userRecord.passwordEncrypted.trim()) {
+    return userRecord.passwordEncrypted.trim();
+  }
+
+  return "";
+}
+
 function comparePasswords(left, right) {
   const leftBuffer = Buffer.from(String(left || ""), "utf8");
   const rightBuffer = Buffer.from(String(right || ""), "utf8");
@@ -894,7 +914,9 @@ app.post("/auth/login", async (req, res) => {
     if (provider === "manual") {
       const userRecord = extractUserRecordFromWebhookBody(webhookResponse.data);
 
-      if (!userRecord || !userRecord.pass) {
+      const encryptedStoredPassword = extractEncryptedPasswordFromUserRecord(userRecord);
+
+      if (!userRecord || !encryptedStoredPassword) {
         res.status(401).json({
           ok: false,
           message: "User not found or password data is missing.",
@@ -906,7 +928,7 @@ app.post("/auth/login", async (req, res) => {
         return;
       }
 
-      const storedPassword = decryptPasswordFromWebhook(userRecord.pass);
+      const storedPassword = decryptPasswordFromWebhook(encryptedStoredPassword);
       if (!comparePasswords(password, storedPassword)) {
         res.status(401).json({
           ok: false,
