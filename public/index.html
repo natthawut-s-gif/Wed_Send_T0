@@ -326,6 +326,7 @@
           <div id="settingsMessage" class="settings-message idle"></div>
 
           <div class="modal-actions">
+            <button id="logoutButton" type="button" class="secondary-button"></button>
             <button id="saveSettingsButton" type="submit"></button>
           </div>
         </form>
@@ -789,6 +790,7 @@
           loginPasswordLabel: "Password",
           loginButton: "Sign in",
           registerButton: "Create account",
+          logoutButton: "Logout",
           loginDivider: "or continue with",
           loginWithGoogle: "Continue with Google",
           loginWithMicrosoft: "Continue with Microsoft",
@@ -800,6 +802,7 @@
           registerSending: "Sending register request...",
           registerSuccess: "Register successful.",
           registerFailed: "Register failed.",
+          logoutSuccess: "Logged out successfully.",
           loginWebhookMissing: "Login webhook is not configured yet.",
           loginGoogleMissing: "Google Login is not configured yet.",
           loginMicrosoftMissing: "Microsoft Login is not configured yet.",
@@ -879,6 +882,7 @@
       const settingsActionWebhookUrl = document.getElementById("settingsActionWebhookUrl");
       const settingsCommandWebhookUrl = document.getElementById("settingsCommandWebhookUrl");
       const settingsMessage = document.getElementById("settingsMessage");
+      const logoutButton = document.getElementById("logoutButton");
       const saveSettingsButton = document.getElementById("saveSettingsButton");
       const currentWebhookUrl = document.getElementById("currentWebhookUrl");
       const currentWebhookStatus = document.getElementById("currentWebhookStatus");
@@ -1133,6 +1137,7 @@
           t("settingsMicrosoftAuthorityInputLabel")
         );
         settingsMicrosoftAuthority.placeholder = t("settingsMicrosoftAuthorityPlaceholder");
+        logoutButton.textContent = t("logoutButton");
         saveSettingsButton.textContent = t("saveSettingsButton");
         renderLoginMessage();
         renderGoogleLoginButton();
@@ -1241,16 +1246,17 @@
           provider: session.provider || "",
           email: session.email || ""
         };
-        sessionStorage.setItem(LOGIN_SESSION_STORAGE_KEY, JSON.stringify(loginState));
+        localStorage.setItem(LOGIN_SESSION_STORAGE_KEY, JSON.stringify(loginState));
         loginGate.classList.add("hidden");
         senderEmail.value = session.email || senderEmail.value;
+        loginEmailInput.value = session.email || loginEmailInput.value;
         persistSenderFields();
         renderUploadHistory();
       }
 
       function loadLoginSession() {
         try {
-          const raw = sessionStorage.getItem(LOGIN_SESSION_STORAGE_KEY);
+          const raw = localStorage.getItem(LOGIN_SESSION_STORAGE_KEY);
           if (!raw) {
             return;
           }
@@ -1262,8 +1268,34 @@
 
           persistLoginSession(session);
         } catch (error) {
-          sessionStorage.removeItem(LOGIN_SESSION_STORAGE_KEY);
+          localStorage.removeItem(LOGIN_SESSION_STORAGE_KEY);
         }
+      }
+
+      async function logoutCurrentSession() {
+        loginState = {
+          isAuthenticated: false,
+          provider: "",
+          email: ""
+        };
+        localStorage.removeItem(LOGIN_SESSION_STORAGE_KEY);
+        loginPasswordInput.value = "";
+        loginGate.classList.remove("hidden");
+        setLoginMessageState({ state: "success", raw: t("logoutSuccess") });
+        try {
+          if (currentMsalApp) {
+            const account = currentMsalApp.getAllAccounts?.()[0];
+            if (account) {
+              await currentMsalApp.logoutPopup({
+                account,
+                mainWindowRedirectUri: window.location.origin
+              });
+            }
+          }
+        } catch (error) {
+          // Ignore provider logout errors and keep local logout state.
+        }
+        syncModalOpenState();
       }
 
       function decodeJwtPayload(token) {
@@ -3771,6 +3803,11 @@
         } finally {
           saveSettingsButton.disabled = false;
         }
+      });
+
+      logoutButton.addEventListener("click", async () => {
+        await logoutCurrentSession();
+        closeSettingsModal();
       });
 
       fileInput.addEventListener("change", () => {
