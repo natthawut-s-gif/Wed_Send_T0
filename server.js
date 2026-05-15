@@ -44,6 +44,71 @@ const maxTotalUploadBytes = maxTotalUploadMb * 1024 * 1024;
 const appStartedAt = new Date();
 const pythonCommand = process.env.PYTHON_COMMAND || "python";
 const appVersion = packageJson.version || "0.0.0";
+const defaultUploadBodyTemplate = JSON.stringify(
+  {
+    submittedAt: "{{submittedAt}}",
+    sentAt: "{{sentAt}}",
+    batchId: "{{batchId}}",
+    fileIndex: "{{fileIndex}}",
+    fileCount: "{{fileCount}}",
+    outboundFileCount: "{{outboundFileCount}}",
+    originalName: "{{originalName}}",
+    mimeType: "{{mimeType}}",
+    fileSize: "{{fileSize}}",
+    sourceOriginalName: "{{sourceOriginalName}}",
+    sourceOriginalNameUtf8Base64: "{{sourceOriginalNameUtf8Base64}}",
+    processedKind: "{{processedKind}}",
+    sourcePageNumber: "{{sourcePageNumber}}",
+    sourcePageCount: "{{sourcePageCount}}",
+    ocrCandidate: "{{ocrCandidate}}",
+    ocrConfidence: "{{ocrConfidence}}",
+    ocrScore: "{{ocrScore}}",
+    ocrTextLength: "{{ocrTextLength}}",
+    documentProfile: "{{documentProfile}}",
+    backgroundSaturation: "{{backgroundSaturation}}",
+    tintStrength: "{{tintStrength}}",
+    senderName: "{{form.senderName}}",
+    senderEmail: "{{form.senderEmail}}",
+    note: "{{form.note}}"
+  },
+  null,
+  2
+);
+const defaultActionBodyTemplate = JSON.stringify(
+  {
+    action: "{{action}}",
+    email: "{{email}}",
+    editedData: "{{editedData}}",
+    rowData: "{{rowData}}"
+  },
+  null,
+  2
+);
+const defaultCommandBodyTemplate = JSON.stringify(
+  {
+    message: "{{message}}",
+    node: "{{node}}"
+  },
+  null,
+  2
+);
+const defaultLoginBodyTemplate = JSON.stringify(
+  {
+    node: "{{node}}",
+    provider: "{{provider}}",
+    user: "{{user}}",
+    email: "{{email}}",
+    pass: "{{pass}}",
+    role: "{{role}}",
+    status: "{{status}}",
+    requesterRole: "{{requesterRole}}",
+    requesterEmail: "{{requesterEmail}}",
+    idToken: "{{idToken}}",
+    accessToken: "{{accessToken}}"
+  },
+  null,
+  2
+);
 let currentWebhookUrl = defaultWebhookUrl;
 let currentExportDocWebhookUrl = defaultExportDocWebhookUrl;
 let currentCommandWebhookUrl = defaultCommandWebhookUrl;
@@ -51,6 +116,10 @@ let currentLoginWebhookUrl = defaultLoginWebhookUrl;
 let currentGoogleClientId = defaultGoogleClientId;
 let currentMicrosoftClientId = defaultMicrosoftClientId;
 let currentMicrosoftAuthority = defaultMicrosoftAuthority;
+let currentUploadBodyTemplate = defaultUploadBodyTemplate;
+let currentActionBodyTemplate = defaultActionBodyTemplate;
+let currentCommandBodyTemplate = defaultCommandBodyTemplate;
+let currentLoginBodyTemplate = defaultLoginBodyTemplate;
 let uploadHistory = [];
 const uploadProgressStore = new Map();
 
@@ -143,7 +212,11 @@ function getWebhookSettings() {
     loginWebhookUrl: currentLoginWebhookUrl,
     googleClientId: currentGoogleClientId,
     microsoftClientId: currentMicrosoftClientId,
-    microsoftAuthority: currentMicrosoftAuthority
+    microsoftAuthority: currentMicrosoftAuthority,
+    uploadBodyTemplate: currentUploadBodyTemplate,
+    actionBodyTemplate: currentActionBodyTemplate,
+    commandBodyTemplate: currentCommandBodyTemplate,
+    loginBodyTemplate: currentLoginBodyTemplate
   };
 }
 
@@ -257,6 +330,22 @@ function sanitizeWebhookSettings(payload) {
     typeof payload?.microsoftAuthority === "string"
       ? payload.microsoftAuthority.trim()
       : defaultMicrosoftAuthority;
+  const uploadBodyTemplate =
+    typeof payload?.uploadBodyTemplate === "string"
+      ? payload.uploadBodyTemplate.trim()
+      : currentUploadBodyTemplate;
+  const actionBodyTemplate =
+    typeof payload?.actionBodyTemplate === "string"
+      ? payload.actionBodyTemplate.trim()
+      : currentActionBodyTemplate;
+  const commandBodyTemplate =
+    typeof payload?.commandBodyTemplate === "string"
+      ? payload.commandBodyTemplate.trim()
+      : currentCommandBodyTemplate;
+  const loginBodyTemplate =
+    typeof payload?.loginBodyTemplate === "string"
+      ? payload.loginBodyTemplate.trim()
+      : currentLoginBodyTemplate;
 
   for (const [label, value] of [
     ["Webhook URL", webhookUrl],
@@ -305,6 +394,27 @@ function sanitizeWebhookSettings(payload) {
     }
   }
 
+  const templates = [
+    ["Upload Body Template", uploadBodyTemplate || defaultUploadBodyTemplate],
+    ["Action Body Template", actionBodyTemplate || defaultActionBodyTemplate],
+    ["Command Body Template", commandBodyTemplate || defaultCommandBodyTemplate],
+    ["Login Body Template", loginBodyTemplate || defaultLoginBodyTemplate]
+  ];
+
+  for (const [label, templateText] of templates) {
+    try {
+      const parsed = JSON.parse(templateText);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error(`${label} must be a JSON object.`);
+      }
+    } catch (error) {
+      if (error.message.endsWith("must be a JSON object.")) {
+        throw error;
+      }
+      throw new Error(`${label} must be valid JSON.`);
+    }
+  }
+
   return {
     webhookUrl,
     actionWebhookUrl,
@@ -312,7 +422,11 @@ function sanitizeWebhookSettings(payload) {
     loginWebhookUrl,
     googleClientId,
     microsoftClientId,
-    microsoftAuthority: microsoftAuthority || defaultMicrosoftAuthority
+    microsoftAuthority: microsoftAuthority || defaultMicrosoftAuthority,
+    uploadBodyTemplate: uploadBodyTemplate || defaultUploadBodyTemplate,
+    actionBodyTemplate: actionBodyTemplate || defaultActionBodyTemplate,
+    commandBodyTemplate: commandBodyTemplate || defaultCommandBodyTemplate,
+    loginBodyTemplate: loginBodyTemplate || defaultLoginBodyTemplate
   };
 }
 
@@ -327,6 +441,10 @@ async function loadWebhookSettings() {
     currentGoogleClientId = parsed.googleClientId;
     currentMicrosoftClientId = parsed.microsoftClientId;
     currentMicrosoftAuthority = parsed.microsoftAuthority;
+    currentUploadBodyTemplate = parsed.uploadBodyTemplate;
+    currentActionBodyTemplate = parsed.actionBodyTemplate;
+    currentCommandBodyTemplate = parsed.commandBodyTemplate;
+    currentLoginBodyTemplate = parsed.loginBodyTemplate;
   } catch (error) {
     if (error.code === "ENOENT") {
       await saveWebhookSettings({
@@ -336,7 +454,11 @@ async function loadWebhookSettings() {
         loginWebhookUrl: currentLoginWebhookUrl,
         googleClientId: currentGoogleClientId,
         microsoftClientId: currentMicrosoftClientId,
-        microsoftAuthority: currentMicrosoftAuthority
+        microsoftAuthority: currentMicrosoftAuthority,
+        uploadBodyTemplate: currentUploadBodyTemplate,
+        actionBodyTemplate: currentActionBodyTemplate,
+        commandBodyTemplate: currentCommandBodyTemplate,
+        loginBodyTemplate: currentLoginBodyTemplate
       });
       return;
     }
@@ -356,6 +478,10 @@ async function saveWebhookSettings(payload) {
   currentGoogleClientId = sanitized.googleClientId;
   currentMicrosoftClientId = sanitized.microsoftClientId;
   currentMicrosoftAuthority = sanitized.microsoftAuthority;
+  currentUploadBodyTemplate = sanitized.uploadBodyTemplate;
+  currentActionBodyTemplate = sanitized.actionBodyTemplate;
+  currentCommandBodyTemplate = sanitized.commandBodyTemplate;
+  currentLoginBodyTemplate = sanitized.loginBodyTemplate;
   return sanitized;
 }
 
@@ -457,6 +583,67 @@ function comparePasswords(left, right) {
   }
 
   return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function getTemplateValue(context, keyPath) {
+  const segments = String(keyPath || "")
+    .split(".")
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+  let current = context;
+
+  for (const segment of segments) {
+    if (current == null || typeof current !== "object" || !(segment in current)) {
+      return undefined;
+    }
+    current = current[segment];
+  }
+
+  return current;
+}
+
+function resolveTemplateNode(node, context) {
+  if (Array.isArray(node)) {
+    return node
+      .map((item) => resolveTemplateNode(item, context))
+      .filter((item) => item !== undefined);
+  }
+
+  if (node && typeof node === "object") {
+    const resolved = {};
+    for (const [key, value] of Object.entries(node)) {
+      const nextValue = resolveTemplateNode(value, context);
+      if (nextValue !== undefined) {
+        resolved[key] = nextValue;
+      }
+    }
+    return resolved;
+  }
+
+  if (typeof node !== "string") {
+    return node;
+  }
+
+  const exactMatch = node.match(/^\s*\{\{\s*([^}]+?)\s*\}\}\s*$/);
+  if (exactMatch) {
+    return getTemplateValue(context, exactMatch[1]);
+  }
+
+  return node.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, keyPath) => {
+    const value = getTemplateValue(context, keyPath);
+    if (value == null) {
+      return "";
+    }
+    if (typeof value === "object") {
+      return JSON.stringify(value);
+    }
+    return String(value);
+  });
+}
+
+function buildPayloadFromTemplate(templateText, context) {
+  const parsed = JSON.parse(templateText);
+  return resolveTemplateNode(parsed, context);
 }
 
 async function loadUploadHistory() {
@@ -881,16 +1068,22 @@ app.post("/auth/login", async (req, res) => {
 
   try {
     const encryptedPassword = provider === "manual" ? encryptPasswordForWebhook(password) : "";
+    const loginPayload = buildPayloadFromTemplate(currentLoginBodyTemplate, {
+      node: "login",
+      provider,
+      user: "",
+      email,
+      pass: encryptedPassword,
+      role: "",
+      status: "",
+      requesterRole: "",
+      requesterEmail: "",
+      idToken,
+      accessToken
+    });
     const webhookResponse = await axios.post(
       currentLoginWebhookUrl,
-      {
-        node: "login",
-        provider,
-        email,
-        pass: encryptedPassword,
-        ...(idToken ? { idToken } : {}),
-        ...(accessToken ? { accessToken } : {})
-      },
+      loginPayload,
       {
         headers: {
           "Content-Type": "application/json"
@@ -1021,19 +1214,22 @@ app.post("/auth/register", async (req, res) => {
 
   try {
     const encryptedPassword = encryptPasswordForWebhook(password);
+    const registerPayload = buildPayloadFromTemplate(currentLoginBodyTemplate, {
+      node: "register",
+      provider,
+      user: username,
+      email,
+      pass: encryptedPassword,
+      role: role || "user",
+      status,
+      requesterRole,
+      requesterEmail,
+      idToken: "",
+      accessToken: ""
+    });
     const webhookResponse = await axios.post(
       currentLoginWebhookUrl,
-      {
-        node: "register",
-        provider,
-        user: username,
-        email,
-        pass: encryptedPassword,
-        role: role || "user",
-        status,
-        requesterRole,
-        requesterEmail
-      },
+      registerPayload,
       {
         headers: {
           "Content-Type": "application/json"
@@ -1104,14 +1300,15 @@ app.post("/doc-action", async (req, res) => {
   }
 
   try {
+    const actionPayload = buildPayloadFromTemplate(currentActionBodyTemplate, {
+      action,
+      email,
+      editedData,
+      rowData
+    });
     const webhookResponse = await axios.post(
       currentExportDocWebhookUrl,
-      {
-        action,
-        email,
-        ...(action === "edit" ? { editedData } : {}),
-        ...(action === "delete" ? { rowData } : {})
-      },
+      actionPayload,
       {
         headers: {
           "Content-Type": "application/json"
@@ -1190,12 +1387,13 @@ app.post("/web-command", async (req, res) => {
   }
 
   try {
+    const commandPayload = buildPayloadFromTemplate(currentCommandBodyTemplate, {
+      message: command,
+      node
+    });
     const webhookResponse = await axios.post(
       currentCommandWebhookUrl,
-      {
-        message: command,
-        node
-      },
+      commandPayload,
       {
         headers: {
           "Content-Type": "application/json"
@@ -1245,12 +1443,13 @@ app.get("/web-command/options", async (req, res) => {
   }
 
   try {
+    const commandOptionsPayload = buildPayloadFromTemplate(currentCommandBodyTemplate, {
+      message: "เรียก node",
+      node: "node"
+    });
     const webhookResponse = await axios.post(
       currentCommandWebhookUrl,
-      {
-        message: "เรียก node",
-        node: "node"
-      },
+      commandOptionsPayload,
       {
         headers: {
           "Content-Type": "application/json"
@@ -1386,36 +1585,37 @@ async function processUploadJob({ uploadRequestId, files, formFields }) {
       contentType: file.mimeType,
       knownLength: file.size
     });
-    form.append("submittedAt", submittedAt);
-    form.append("sentAt", sentAt);
-    form.append("batchId", batchId);
-    form.append("fileIndex", String(fileNumber));
-    form.append("fileCount", String(files.length));
-    form.append("outboundFileCount", String(outboundFiles.length));
-    form.append("originalName", file.filename);
-    form.append("mimeType", file.mimeType);
-    form.append("fileSize", String(file.size));
-    form.append("sourceOriginalName", file.sourceOriginalName);
-    form.append(
-      "sourceOriginalNameUtf8Base64",
-      Buffer.from(file.sourceOriginalName || "", "utf8").toString("base64")
-    );
-    form.append("processedKind", file.processedKind);
-    form.append("sourcePageNumber", file.pageNumber ? String(file.pageNumber) : "");
-    form.append("sourcePageCount", file.pageCount ? String(file.pageCount) : "");
-    form.append("ocrCandidate", file.ocrCandidate || "");
-    form.append("ocrConfidence", file.ocrConfidence != null ? String(file.ocrConfidence) : "");
-    form.append("ocrScore", file.ocrScore != null ? String(file.ocrScore) : "");
-    form.append("ocrTextLength", file.ocrTextLength != null ? String(file.ocrTextLength) : "");
-    form.append("documentProfile", file.documentProfile || "");
-    form.append(
-      "backgroundSaturation",
-      file.backgroundSaturation != null ? String(file.backgroundSaturation) : ""
-    );
-    form.append("tintStrength", file.tintStrength != null ? String(file.tintStrength) : "");
+    const uploadBodyPayload = buildPayloadFromTemplate(currentUploadBodyTemplate, {
+      submittedAt,
+      sentAt,
+      batchId,
+      fileIndex: String(fileNumber),
+      fileCount: String(files.length),
+      outboundFileCount: String(outboundFiles.length),
+      originalName: file.filename,
+      mimeType: file.mimeType,
+      fileSize: String(file.size),
+      sourceOriginalName: file.sourceOriginalName,
+      sourceOriginalNameUtf8Base64: Buffer.from(file.sourceOriginalName || "", "utf8").toString("base64"),
+      processedKind: file.processedKind,
+      sourcePageNumber: file.pageNumber ? String(file.pageNumber) : "",
+      sourcePageCount: file.pageCount ? String(file.pageCount) : "",
+      ocrCandidate: file.ocrCandidate || "",
+      ocrConfidence: file.ocrConfidence != null ? String(file.ocrConfidence) : "",
+      ocrScore: file.ocrScore != null ? String(file.ocrScore) : "",
+      ocrTextLength: file.ocrTextLength != null ? String(file.ocrTextLength) : "",
+      documentProfile: file.documentProfile || "",
+      backgroundSaturation:
+        file.backgroundSaturation != null ? String(file.backgroundSaturation) : "",
+      tintStrength: file.tintStrength != null ? String(file.tintStrength) : "",
+      form: formFields || {}
+    });
 
-    for (const [key, value] of Object.entries(formFields || {})) {
-      form.append(key, value);
+    for (const [key, value] of Object.entries(uploadBodyPayload || {})) {
+      if (key === "file" || value === undefined) {
+        continue;
+      }
+      form.append(key, typeof value === "object" ? JSON.stringify(value) : String(value));
     }
 
     try {

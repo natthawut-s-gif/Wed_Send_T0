@@ -530,6 +530,15 @@ button:disabled {
   line-height: 1.5;
 }
 
+.code-textarea {
+  min-height: 172px;
+  resize: vertical;
+  font-family: "Consolas", "SFMono-Regular", monospace;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  white-space: pre;
+}
+
 .file-remove-button {
   flex-shrink: 0;
   width: auto;

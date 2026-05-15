@@ -291,8 +291,30 @@
           </label>
 
           <label class="field">
+            <span id="settingsUploadBodyTemplateLabel"></span>
+            <textarea
+              id="settingsUploadBodyTemplate"
+              name="uploadBodyTemplate"
+              rows="8"
+              class="code-textarea"
+              spellcheck="false"
+            ></textarea>
+          </label>
+
+          <label class="field">
             <span id="settingsActionWebhookInputLabel"></span>
             <input id="settingsActionWebhookUrl" type="url" name="actionWebhookUrl" required />
+          </label>
+
+          <label class="field">
+            <span id="settingsActionBodyTemplateLabel"></span>
+            <textarea
+              id="settingsActionBodyTemplate"
+              name="actionBodyTemplate"
+              rows="8"
+              class="code-textarea"
+              spellcheck="false"
+            ></textarea>
           </label>
 
           <label class="field">
@@ -301,8 +323,30 @@
           </label>
 
           <label class="field">
+            <span id="settingsCommandBodyTemplateLabel"></span>
+            <textarea
+              id="settingsCommandBodyTemplate"
+              name="commandBodyTemplate"
+              rows="8"
+              class="code-textarea"
+              spellcheck="false"
+            ></textarea>
+          </label>
+
+          <label class="field">
             <span id="settingsLoginWebhookInputLabel"></span>
             <input id="settingsLoginWebhookUrl" type="url" name="loginWebhookUrl" />
+          </label>
+
+          <label class="field">
+            <span id="settingsLoginBodyTemplateLabel"></span>
+            <textarea
+              id="settingsLoginBodyTemplate"
+              name="loginBodyTemplate"
+              rows="8"
+              class="code-textarea"
+              spellcheck="false"
+            ></textarea>
           </label>
 
           <label class="field">
@@ -703,8 +747,11 @@
           languageEnglish: "English",
           languageHelper: "Switch the interface language instantly. The selected option is saved in this browser.",
           settingsWebhookInputLabel: "Webhook URL",
+          settingsUploadBodyTemplateLabel: "Upload Webhook Body Template",
           settingsActionWebhookInputLabel: "Action Webhook URL",
+          settingsActionBodyTemplateLabel: "Action Webhook Body Template",
           settingsCommandWebhookInputLabel: "Command Webhook URL",
+          settingsCommandBodyTemplateLabel: "Command Webhook Body Template",
           settingsWebhookPlaceholder: "https://your-domain/webhook/upload",
           settingsActionWebhookPlaceholder: "https://your-domain/webhook/action",
           settingsCommandWebhookPlaceholder: "https://your-domain/webhook/command",
@@ -857,6 +904,7 @@
           loginMicrosoftMissing: "Microsoft Login is not configured yet.",
           settingsLoginWebhookStatusLabel: "Login Webhook URL",
           settingsLoginWebhookInputLabel: "Login Webhook URL",
+          settingsLoginBodyTemplateLabel: "Login Webhook Body Template",
           settingsLoginWebhookPlaceholder: "https://your-domain/webhook/login",
           settingsGoogleClientIdInputLabel: "Google Client ID",
           settingsGoogleClientIdPlaceholder:
@@ -927,8 +975,11 @@
       const closeSettingsButton = document.getElementById("closeSettingsButton");
       const settingsForm = document.getElementById("settingsForm");
       const settingsWebhookUrl = document.getElementById("settingsWebhookUrl");
+      const settingsUploadBodyTemplate = document.getElementById("settingsUploadBodyTemplate");
       const settingsActionWebhookUrl = document.getElementById("settingsActionWebhookUrl");
+      const settingsActionBodyTemplate = document.getElementById("settingsActionBodyTemplate");
       const settingsCommandWebhookUrl = document.getElementById("settingsCommandWebhookUrl");
+      const settingsCommandBodyTemplate = document.getElementById("settingsCommandBodyTemplate");
       const settingsMessage = document.getElementById("settingsMessage");
       const logoutButton = document.getElementById("logoutButton");
       const saveSettingsButton = document.getElementById("saveSettingsButton");
@@ -939,6 +990,7 @@
       const currentCommandWebhookUrl = document.getElementById("currentCommandWebhookUrl");
       const currentCommandWebhookStatus = document.getElementById("currentCommandWebhookStatus");
       const settingsLoginWebhookUrl = document.getElementById("settingsLoginWebhookUrl");
+      const settingsLoginBodyTemplate = document.getElementById("settingsLoginBodyTemplate");
       const settingsGoogleClientId = document.getElementById("settingsGoogleClientId");
       const settingsMicrosoftClientId = document.getElementById("settingsMicrosoftClientId");
       const settingsMicrosoftAuthority = document.getElementById("settingsMicrosoftAuthority");
@@ -1174,12 +1226,16 @@
         setText("languageHelperText", t("languageHelper"));
         setText("settingsWebhookInputLabel", t("settingsWebhookInputLabel"));
         settingsWebhookUrl.placeholder = t("settingsWebhookPlaceholder");
+        setText("settingsUploadBodyTemplateLabel", t("settingsUploadBodyTemplateLabel"));
         setText("settingsActionWebhookInputLabel", t("settingsActionWebhookInputLabel"));
         settingsActionWebhookUrl.placeholder = t("settingsActionWebhookPlaceholder");
+        setText("settingsActionBodyTemplateLabel", t("settingsActionBodyTemplateLabel"));
         setText("settingsCommandWebhookInputLabel", t("settingsCommandWebhookInputLabel"));
         settingsCommandWebhookUrl.placeholder = t("settingsCommandWebhookPlaceholder");
+        setText("settingsCommandBodyTemplateLabel", t("settingsCommandBodyTemplateLabel"));
         setText("settingsLoginWebhookInputLabel", t("settingsLoginWebhookInputLabel"));
         settingsLoginWebhookUrl.placeholder = t("settingsLoginWebhookPlaceholder");
+        setText("settingsLoginBodyTemplateLabel", t("settingsLoginBodyTemplateLabel"));
         setText("settingsGoogleClientIdInputLabel", t("settingsGoogleClientIdInputLabel"));
         settingsGoogleClientId.placeholder = t("settingsGoogleClientIdPlaceholder");
         setText(
@@ -1748,9 +1804,13 @@
           currentSettingsPayload = result;
           currentAppVersion = result.appVersion || currentAppVersion;
           settingsWebhookUrl.value = result.webhookUrl || "";
+          settingsUploadBodyTemplate.value = result.uploadBodyTemplate || "";
           settingsActionWebhookUrl.value = result.actionWebhookUrl || "";
+          settingsActionBodyTemplate.value = result.actionBodyTemplate || "";
           settingsCommandWebhookUrl.value = result.commandWebhookUrl || "";
+          settingsCommandBodyTemplate.value = result.commandBodyTemplate || "";
           settingsLoginWebhookUrl.value = result.loginWebhookUrl || "";
+          settingsLoginBodyTemplate.value = result.loginBodyTemplate || "";
           settingsGoogleClientId.value = result.googleClientId || "";
           settingsMicrosoftClientId.value = result.microsoftClientId || "";
           settingsMicrosoftAuthority.value =
@@ -3879,9 +3939,13 @@
             },
             body: JSON.stringify({
               webhookUrl: settingsWebhookUrl.value.trim(),
+              uploadBodyTemplate: settingsUploadBodyTemplate.value,
               actionWebhookUrl: settingsActionWebhookUrl.value.trim(),
+              actionBodyTemplate: settingsActionBodyTemplate.value,
               commandWebhookUrl: settingsCommandWebhookUrl.value.trim(),
+              commandBodyTemplate: settingsCommandBodyTemplate.value,
               loginWebhookUrl: settingsLoginWebhookUrl.value.trim(),
+              loginBodyTemplate: settingsLoginBodyTemplate.value,
               googleClientId: settingsGoogleClientId.value.trim(),
               microsoftClientId: settingsMicrosoftClientId.value.trim(),
               microsoftAuthority: settingsMicrosoftAuthority.value.trim()
