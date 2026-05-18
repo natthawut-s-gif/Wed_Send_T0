@@ -1,8 +1,20 @@
-require("dotenv").config();
+const fsSync = require("fs");
+const path = require("path");
+const dotenv = require("dotenv");
+
+const dotenvCandidates = [
+  path.resolve(__dirname, ".env"),
+  path.resolve(__dirname, ".env.example")
+];
+
+for (const envFilePath of dotenvCandidates) {
+  if (fsSync.existsSync(envFilePath)) {
+    dotenv.config({ path: envFilePath, override: false });
+  }
+}
 
 const fs = require("fs/promises");
 const os = require("os");
-const path = require("path");
 const crypto = require("crypto");
 const { promisify } = require("util");
 const { execFile, spawn } = require("child_process");
@@ -128,6 +140,28 @@ const uploadProgressStore = new Map();
 
 function hasConfiguredEnvValue(name) {
   return typeof process.env[name] === "string" && process.env[name].trim() !== "";
+}
+
+function getEnvManagedWebhookSettings() {
+  return {
+    webhookUrl: hasConfiguredEnvValue("N8N_WEBHOOK_URL") ? defaultWebhookUrl.trim() : "",
+    actionWebhookUrl: hasConfiguredEnvValue("EXPORT_DOC_WEBHOOK_URL")
+      ? defaultExportDocWebhookUrl.trim()
+      : "",
+    commandWebhookUrl: hasConfiguredEnvValue("COMMAND_WEBHOOK_URL")
+      ? defaultCommandWebhookUrl.trim()
+      : "",
+    loginWebhookUrl: hasConfiguredEnvValue("LOGIN_WEBHOOK_URL")
+      ? defaultLoginWebhookUrl.trim()
+      : "",
+    googleClientId: hasConfiguredEnvValue("GOOGLE_CLIENT_ID") ? defaultGoogleClientId.trim() : "",
+    microsoftClientId: hasConfiguredEnvValue("MICROSOFT_CLIENT_ID")
+      ? defaultMicrosoftClientId.trim()
+      : "",
+    microsoftAuthority: hasConfiguredEnvValue("MICROSOFT_AUTHORITY")
+      ? defaultMicrosoftAuthority.trim()
+      : ""
+  };
 }
 
 const runtimeStats = {
@@ -322,6 +356,7 @@ function sanitizeUploadHistory(payload) {
 }
 
 function sanitizeWebhookSettings(payload) {
+  const envManaged = getEnvManagedWebhookSettings();
   const webhookUrl = typeof payload?.webhookUrl === "string" ? payload.webhookUrl.trim() : "";
   const actionWebhookUrl =
     typeof payload?.actionWebhookUrl === "string" ? payload.actionWebhookUrl.trim() : "";
@@ -355,9 +390,9 @@ function sanitizeWebhookSettings(payload) {
       : currentLoginBodyTemplate;
 
   for (const [label, value] of [
-    ["Webhook URL", webhookUrl],
-    ["Action Webhook URL", actionWebhookUrl],
-    ["Command Webhook URL", commandWebhookUrl]
+    ["Webhook URL", webhookUrl || envManaged.webhookUrl],
+    ["Action Webhook URL", actionWebhookUrl || envManaged.actionWebhookUrl],
+    ["Command Webhook URL", commandWebhookUrl || envManaged.commandWebhookUrl]
   ]) {
     if (!value) {
       throw new Error(`${label} is required.`);
@@ -375,10 +410,10 @@ function sanitizeWebhookSettings(payload) {
     }
   }
 
-  if (loginWebhookUrl) {
+  if (loginWebhookUrl || envManaged.loginWebhookUrl) {
     let parsedLoginWebhookUrl;
     try {
-      parsedLoginWebhookUrl = new URL(loginWebhookUrl);
+      parsedLoginWebhookUrl = new URL(loginWebhookUrl || envManaged.loginWebhookUrl);
     } catch (error) {
       throw new Error("Login Webhook URL must be a valid URL.");
     }
@@ -388,10 +423,10 @@ function sanitizeWebhookSettings(payload) {
     }
   }
 
-  if (microsoftAuthority) {
+  if (microsoftAuthority || envManaged.microsoftAuthority) {
     let parsedMicrosoftAuthority;
     try {
-      parsedMicrosoftAuthority = new URL(microsoftAuthority);
+      parsedMicrosoftAuthority = new URL(microsoftAuthority || envManaged.microsoftAuthority);
     } catch (error) {
       throw new Error("Microsoft Authority must be a valid URL.");
     }
@@ -471,6 +506,40 @@ function applyEnvironmentOverrides(settings) {
   return next;
 }
 
+function buildPersistedWebhookSettings(settings) {
+  const next = { ...settings };
+
+  if (hasConfiguredEnvValue("N8N_WEBHOOK_URL")) {
+    delete next.webhookUrl;
+  }
+
+  if (hasConfiguredEnvValue("EXPORT_DOC_WEBHOOK_URL")) {
+    delete next.actionWebhookUrl;
+  }
+
+  if (hasConfiguredEnvValue("COMMAND_WEBHOOK_URL")) {
+    delete next.commandWebhookUrl;
+  }
+
+  if (hasConfiguredEnvValue("LOGIN_WEBHOOK_URL")) {
+    delete next.loginWebhookUrl;
+  }
+
+  if (hasConfiguredEnvValue("GOOGLE_CLIENT_ID")) {
+    delete next.googleClientId;
+  }
+
+  if (hasConfiguredEnvValue("MICROSOFT_CLIENT_ID")) {
+    delete next.microsoftClientId;
+  }
+
+  if (hasConfiguredEnvValue("MICROSOFT_AUTHORITY")) {
+    delete next.microsoftAuthority;
+  }
+
+  return next;
+}
+
 function applyCurrentWebhookSettings(settings) {
   currentWebhookUrl = settings.webhookUrl;
   currentExportDocWebhookUrl = settings.actionWebhookUrl;
@@ -491,13 +560,18 @@ async function loadWebhookSettings() {
     const parsedFile = JSON.parse(raw);
     const parsed = applyEnvironmentOverrides(
       sanitizeWebhookSettings({
-        webhookUrl: parsedFile?.webhookUrl || currentWebhookUrl,
-        actionWebhookUrl: parsedFile?.actionWebhookUrl || currentExportDocWebhookUrl,
-        commandWebhookUrl: parsedFile?.commandWebhookUrl || currentCommandWebhookUrl,
-        loginWebhookUrl: parsedFile?.loginWebhookUrl || currentLoginWebhookUrl,
-        googleClientId: parsedFile?.googleClientId || currentGoogleClientId,
-        microsoftClientId: parsedFile?.microsoftClientId || currentMicrosoftClientId,
-        microsoftAuthority: parsedFile?.microsoftAuthority || currentMicrosoftAuthority,
+        webhookUrl: parsedFile?.webhookUrl || defaultWebhookUrl || currentWebhookUrl,
+        actionWebhookUrl:
+          parsedFile?.actionWebhookUrl || defaultExportDocWebhookUrl || currentExportDocWebhookUrl,
+        commandWebhookUrl:
+          parsedFile?.commandWebhookUrl || defaultCommandWebhookUrl || currentCommandWebhookUrl,
+        loginWebhookUrl:
+          parsedFile?.loginWebhookUrl || defaultLoginWebhookUrl || currentLoginWebhookUrl,
+        googleClientId: parsedFile?.googleClientId || defaultGoogleClientId || currentGoogleClientId,
+        microsoftClientId:
+          parsedFile?.microsoftClientId || defaultMicrosoftClientId || currentMicrosoftClientId,
+        microsoftAuthority:
+          parsedFile?.microsoftAuthority || defaultMicrosoftAuthority || currentMicrosoftAuthority,
         uploadBodyTemplate: parsedFile?.uploadBodyTemplate || currentUploadBodyTemplate,
         actionBodyTemplate: parsedFile?.actionBodyTemplate || currentActionBodyTemplate,
         commandBodyTemplate: parsedFile?.commandBodyTemplate || currentCommandBodyTemplate,
@@ -531,8 +605,9 @@ async function loadWebhookSettings() {
 async function saveWebhookSettings(payload) {
   const sanitized = sanitizeWebhookSettings(payload);
   await ensureParentDirectory(settingsFile);
-  await fs.writeFile(settingsFile, `${JSON.stringify(sanitized, null, 2)}\n`, "utf8");
   const effective = applyEnvironmentOverrides(sanitized);
+  const persisted = buildPersistedWebhookSettings(sanitized);
+  await fs.writeFile(settingsFile, `${JSON.stringify(persisted, null, 2)}\n`, "utf8");
   applyCurrentWebhookSettings(effective);
   return effective;
 }

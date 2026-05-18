@@ -23,7 +23,9 @@ cp .env.example .env
    - `LOGIN_PASSWORD_SECRET` if you use manual login/register/update user
    - `GOOGLE_CLIENT_ID` if you use Google sign-in
    - `MICROSOFT_CLIENT_ID` if you use Microsoft sign-in
-   You can set them in `.env`, or pass them from the shell when running Docker Compose.
+   You can set them in `.env`.
+   Docker Compose now loads `.env` directly into the container through `env_file`.
+   If `.env` does not exist, Docker Compose and the app both fall back to `.env.example`.
 3. Start the service:
 
 ```bash
@@ -37,7 +39,10 @@ On first start, the app will automatically create runtime files inside `./data`:
 
 Important:
 - When running in Docker, webhook/auth values from `.env` are passed into the container.
+- Both `docker-compose.yml` and `docker-compose.server.yml` load `./.env` first and `./.env.example` as fallback.
 - If both `.env` and `data/webhook-settings.json` contain values, the `.env` values take priority at runtime.
+- For env-managed fields (`N8N_WEBHOOK_URL`, `EXPORT_DOC_WEBHOOK_URL`, `COMMAND_WEBHOOK_URL`, `LOGIN_WEBHOOK_URL`, `GOOGLE_CLIENT_ID`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_AUTHORITY`), the app will read from environment first and will not let the persisted `data/webhook-settings.json` override them.
+- When you save settings from the web UI, env-managed values are not persisted back into the runtime settings file. This avoids stale Docker data overriding Linux server environment variables later.
 - This is useful for Linux servers where you want Docker deployment to always follow environment variables.
 
 4. Open:
