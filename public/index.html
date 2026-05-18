@@ -434,6 +434,11 @@
 
             <div class="modal-actions">
               <button
+                id="refreshUserListButton"
+                type="button"
+                class="secondary-button"
+              ></button>
+              <button
                 id="registerAccountButton"
                 type="button"
                 class="secondary-button secondary-button-dark"
@@ -441,6 +446,16 @@
                 Create account
               </button>
             </div>
+          </section>
+
+          <section class="settings-status-card">
+            <div class="settings-status-head">
+              <span id="accountUserListTitle"></span>
+              <em id="accountUserListBadge" class="preview-status idle"></em>
+            </div>
+            <p id="accountUserListDescription" class="theme-helper"></p>
+            <div id="accountUserListMessage" class="settings-message idle"></div>
+            <div id="accountUserListContainer" class="account-user-list-container"></div>
           </section>
         </div>
       </section>
@@ -930,8 +945,23 @@
           accountManagementOpenButton: "Account Management",
           accountManagementKicker: "Admin Access",
           registerAccountButton: "Create account",
+          refreshUserListButton: "Refresh user list",
           accountManagementReady: "Ready to create a new account.",
           registerAccountRequired: "Please enter username, email, and password for the new account.",
+          accountUserListTitle: "Existing accounts",
+          accountUserListDescription: "User list loaded from the login webhook database.",
+          accountUserListLoading: "Loading user list...",
+          accountUserListReady: "Ready to load users.",
+          accountUserListLoaded: "User list loaded successfully.",
+          accountUserListEmpty: "No user records found.",
+          accountUserListFailed: "Failed to load user list.",
+          accountUserListBadgeReady: "Loaded",
+          accountUserListBadgeLoading: "Loading",
+          accountUserListBadgeIdle: "Waiting",
+          accountUserListColumnUser: "Username",
+          accountUserListColumnEmail: "Email",
+          accountUserListColumnRole: "Role",
+          accountUserListColumnStatus: "Status",
           logoutSuccess: "Logged out successfully.",
           loginWebhookMissing: "Login webhook is not configured yet.",
           loginGoogleMissing: "Google Login is not configured yet.",
@@ -1034,6 +1064,10 @@
       const accountManagementSection = document.getElementById("accountManagementSection");
       const accountManagementBadge = document.getElementById("accountManagementBadge");
       const accountManagementMessage = document.getElementById("accountManagementMessage");
+      const refreshUserListButton = document.getElementById("refreshUserListButton");
+      const accountUserListMessage = document.getElementById("accountUserListMessage");
+      const accountUserListContainer = document.getElementById("accountUserListContainer");
+      const accountUserListBadge = document.getElementById("accountUserListBadge");
       const registerAccountUsernameInput = document.getElementById("registerAccountUsernameInput");
       const registerAccountEmailInput = document.getElementById("registerAccountEmailInput");
       const registerAccountPasswordInput = document.getElementById("registerAccountPasswordInput");
@@ -1096,6 +1130,15 @@
         state: "idle",
         key: "accountManagementReady",
         raw: null
+      };
+      let accountUserListMessageState = {
+        state: "idle",
+        key: "accountUserListReady",
+        raw: null
+      };
+      let accountUserListState = {
+        loading: false,
+        items: []
       };
       let loginMessageState = {
         state: "idle",
@@ -1303,6 +1346,9 @@
         setText("accountManagementTitle", t("registerAccountTitle"));
         setText("accountManagementSectionLabel", t("registerAccountTitle"));
         setText("accountManagementDescription", t("registerAccountDescription"));
+        refreshUserListButton.textContent = t("refreshUserListButton");
+        setText("accountUserListTitle", t("accountUserListTitle"));
+        setText("accountUserListDescription", t("accountUserListDescription"));
         setText("registerAccountUsernameLabel", t("registerAccountUsernameLabel"));
         setText("registerAccountEmailLabel", t("registerAccountEmailLabel"));
         setText("registerAccountPasswordLabel", t("registerAccountPasswordLabel"));
@@ -1323,6 +1369,7 @@
         saveSettingsButton.textContent = t("saveSettingsButton");
         renderLoginMessage();
         renderAccountManagementMessage();
+        renderAccountUserList();
         renderAccountManagementState();
         renderGoogleLoginButton();
         renderRoleAccessState();
@@ -1424,6 +1471,100 @@
         accountManagementMessage.className = `settings-message ${accountManagementMessageState.state}`;
         accountManagementMessage.textContent =
           accountManagementMessageState.raw || t(accountManagementMessageState.key);
+      }
+
+      function setAccountUserListMessageState({ state = "idle", key = null, raw = null }) {
+        accountUserListMessageState = { state, key, raw };
+        renderAccountUserList();
+      }
+
+      function normalizeUserListItems(items) {
+        const list = Array.isArray(items)
+          ? items
+          : Array.isArray(items?.items)
+            ? items.items
+            : Array.isArray(items?.data)
+              ? items.data
+              : Array.isArray(items?.users)
+                ? items.users
+                : [];
+
+        return list
+          .filter((item) => item && typeof item === "object")
+          .map((item, index) => ({
+            id: item.id ?? index + 1,
+            user:
+              String(item.user || item.username || item.name || item.useremail || item.email || "")
+                .trim(),
+            email:
+              String(item.useremail || item.email || item.user || item.username || item.name || "")
+                .trim(),
+            role: String(item.role || "").trim(),
+            status: String(item.status ?? "").trim()
+          }));
+      }
+
+      function renderAccountUserList() {
+        accountUserListMessage.className = `settings-message ${accountUserListMessageState.state}`;
+        accountUserListMessage.textContent =
+          accountUserListMessageState.raw || t(accountUserListMessageState.key);
+
+        accountUserListBadge.className = `preview-status ${
+          accountUserListState.loading
+            ? "idle"
+            : accountUserListState.items.length
+              ? "success"
+              : "idle"
+        }`;
+        refreshUserListButton.disabled = accountUserListState.loading;
+        accountUserListBadge.textContent = accountUserListState.loading
+          ? t("accountUserListBadgeLoading")
+          : accountUserListState.items.length
+            ? t("accountUserListBadgeReady")
+            : t("accountUserListBadgeIdle");
+
+        if (accountUserListState.loading && !accountUserListState.items.length) {
+          accountUserListContainer.innerHTML = `
+            <div class="response-empty">${escapeHtml(t("accountUserListLoading"))}</div>
+          `;
+          return;
+        }
+
+        if (!accountUserListState.items.length) {
+          accountUserListContainer.innerHTML = `
+            <div class="response-empty">${escapeHtml(t("accountUserListEmpty"))}</div>
+          `;
+          return;
+        }
+
+        const rows = accountUserListState.items
+          .map(
+            (item) => `
+              <tr>
+                <td>${escapeHtml(item.user || "-")}</td>
+                <td>${escapeHtml(item.email || "-")}</td>
+                <td>${escapeHtml(item.role || "-")}</td>
+                <td>${escapeHtml(item.status || "-")}</td>
+              </tr>
+            `
+          )
+          .join("");
+
+        accountUserListContainer.innerHTML = `
+          <div class="export-table-wrapper account-user-list-table">
+            <table class="export-response-table">
+              <thead>
+                <tr>
+                  <th>${escapeHtml(t("accountUserListColumnUser"))}</th>
+                  <th>${escapeHtml(t("accountUserListColumnEmail"))}</th>
+                  <th>${escapeHtml(t("accountUserListColumnRole"))}</th>
+                  <th>${escapeHtml(t("accountUserListColumnStatus"))}</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        `;
       }
 
       function setLoginMessageState({ state = "idle", raw = "" }) {
@@ -1659,6 +1800,48 @@
           registerAccountRoleSelect.value = "user";
         } catch (error) {
           setAccountManagementMessageState({ state: "error", raw: error.message });
+        }
+      }
+
+      async function loadAccountUserList() {
+        if (!loginState.isAuthenticated || !isAdminUser()) {
+          return;
+        }
+
+        accountUserListState = {
+          ...accountUserListState,
+          loading: true
+        };
+        setAccountUserListMessageState({ state: "loading", key: "accountUserListLoading" });
+
+        try {
+          const response = await fetch("/auth/user-list", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              requesterRole: loginState.role || "",
+              requesterEmail: loginState.email || ""
+            })
+          });
+          const result = await response.json();
+
+          if (!response.ok || !result.ok) {
+            throw new Error(result.message || t("accountUserListFailed"));
+          }
+
+          accountUserListState = {
+            loading: false,
+            items: normalizeUserListItems(result.items)
+          };
+          setAccountUserListMessageState({ state: "success", key: "accountUserListLoaded" });
+        } catch (error) {
+          accountUserListState = {
+            loading: false,
+            items: []
+          };
+          setAccountUserListMessageState({ state: "error", raw: error.message });
         }
       }
 
@@ -2021,6 +2204,7 @@
         }
         accountManagementModal.classList.remove("hidden");
         setAccountManagementMessageState({ state: "idle", key: "accountManagementReady" });
+        void loadAccountUserList();
         syncModalOpenState();
         registerAccountUsernameInput.focus();
       }
@@ -3927,6 +4111,10 @@
         closeAccountManagementModal();
       });
 
+      refreshUserListButton.addEventListener("click", async () => {
+        await loadAccountUserList();
+      });
+
       chatModal.addEventListener("click", (event) => {
         if (event.target === chatModal) {
           closeChatModal();
@@ -4148,6 +4336,7 @@
 
       registerAccountButton.addEventListener("click", async () => {
         await runSettingsRegister();
+        await loadAccountUserList();
       });
 
       microsoftLoginButton.addEventListener("click", async () => {

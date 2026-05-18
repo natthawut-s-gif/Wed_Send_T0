@@ -1429,6 +1429,14 @@ button:disabled {
   gap: 12px;
 }
 
+.account-user-list-container {
+  min-height: 120px;
+}
+
+.account-user-list-table {
+  max-height: 320px;
+}
+
 @media (max-width: 640px) {
   .card {
     padding: 24px 18px;

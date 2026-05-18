@@ -557,6 +557,27 @@ function extractUserRecordFromWebhookBody(webhookBody) {
   return null;
 }
 
+function extractUserListFromWebhookBody(webhookBody) {
+  if (Array.isArray(webhookBody)) {
+    return webhookBody.filter((item) => item && typeof item === "object");
+  }
+
+  if (Array.isArray(webhookBody?.items)) {
+    return webhookBody.items.filter((item) => item && typeof item === "object");
+  }
+
+  if (Array.isArray(webhookBody?.data)) {
+    return webhookBody.data.filter((item) => item && typeof item === "object");
+  }
+
+  if (Array.isArray(webhookBody?.users)) {
+    return webhookBody.users.filter((item) => item && typeof item === "object");
+  }
+
+  const singleRecord = extractUserRecordFromWebhookBody(webhookBody);
+  return singleRecord ? [singleRecord] : [];
+}
+
 function extractEncryptedPasswordFromUserRecord(userRecord) {
   if (!userRecord || typeof userRecord !== "object") {
     return "";
@@ -1323,6 +1344,89 @@ app.post("/auth/register", async (req, res) => {
       message: "Failed to reach register webhook.",
       provider,
       email,
+      error: error.message
+    });
+  }
+});
+
+app.post("/auth/user-list", async (req, res) => {
+  const requesterRole =
+    typeof req.body?.requesterRole === "string"
+      ? req.body.requesterRole.trim().toLowerCase()
+      : "";
+  const requesterEmail =
+    typeof req.body?.requesterEmail === "string" ? req.body.requesterEmail.trim().toLowerCase() : "";
+
+  if (!currentLoginWebhookUrl) {
+    res.status(500).json({
+      ok: false,
+      message: "LOGIN_WEBHOOK_URL is not configured."
+    });
+    return;
+  }
+
+  if (requesterRole !== "admin") {
+    res.status(403).json({
+      ok: false,
+      message: "Only admin users can load user accounts."
+    });
+    return;
+  }
+
+  try {
+    const userListPayload = ensurePayloadAliases(
+      buildPayloadFromTemplate(currentLoginBodyTemplate, {
+        node: "checkuserlist",
+        provider: "manual",
+        user: "",
+        username: "",
+        name: "",
+        email: "",
+        useremail: "",
+        pass: "",
+        role: "",
+        status: "",
+        requesterRole,
+        requesterEmail,
+        idToken: "",
+        accessToken: ""
+      }),
+      {
+        node: "checkuserlist",
+        provider: "manual",
+        requesterRole,
+        requesterEmail
+      }
+    );
+
+    const webhookResponse = await axios.post(currentLoginWebhookUrl, userListPayload, {
+      headers: {
+        "Content-Type": "application/json"
+      },
+      validateStatus: () => true
+    });
+
+    if (webhookResponse.status >= 400) {
+      res.status(502).json({
+        ok: false,
+        message: "User list webhook returned an error.",
+        webhookStatus: webhookResponse.status,
+        webhookBody: webhookResponse.data
+      });
+      return;
+    }
+
+    res.json({
+      ok: true,
+      message: "User list loaded successfully.",
+      items: extractUserListFromWebhookBody(webhookResponse.data),
+      webhookStatus: webhookResponse.status,
+      webhookBody: webhookResponse.data
+    });
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      message: "Failed to reach user list webhook.",
       error: error.message
     });
   }
