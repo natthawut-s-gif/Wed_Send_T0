@@ -1508,7 +1508,10 @@
                 .trim(),
             role: String(item.role || "").trim(),
             status: String(item.status ?? "").trim(),
-            password: ""
+            password: "",
+            currentPasswordEncrypted: String(
+              item.pass || item.password || item.passwordEncrypted || ""
+            ).trim()
           }));
       }
 
@@ -1979,6 +1982,7 @@
               username: String(item.user || "").trim(),
               email: String(item.email || "").trim().toLowerCase(),
               password: String(item.password || ""),
+              currentPasswordEncrypted: String(item.currentPasswordEncrypted || ""),
               role: String(item.role || "user").trim().toLowerCase(),
               status: String(item.status || "").trim(),
               requesterRole: loginState.role || "",

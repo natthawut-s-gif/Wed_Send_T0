@@ -1439,6 +1439,10 @@ app.post("/auth/update-user", async (req, res) => {
   const email =
     typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
   const password = typeof req.body?.password === "string" ? req.body.password : "";
+  const currentPasswordEncrypted =
+    typeof req.body?.currentPasswordEncrypted === "string"
+      ? req.body.currentPasswordEncrypted.trim()
+      : "";
   const role = typeof req.body?.role === "string" ? req.body.role.trim().toLowerCase() : "user";
   const status = req.body?.status ?? 1;
   const requesterRole =
@@ -1473,7 +1477,9 @@ app.post("/auth/update-user", async (req, res) => {
   }
 
   try {
-    const encryptedPassword = password ? encryptPasswordForWebhook(password) : "";
+    const encryptedPassword = password
+      ? encryptPasswordForWebhook(password)
+      : currentPasswordEncrypted;
     const updatePayload = ensurePayloadAliases(
       buildPayloadFromTemplate(currentLoginBodyTemplate, {
         node: "updateuser",
