@@ -97,7 +97,10 @@ const defaultLoginBodyTemplate = JSON.stringify(
     node: "{{node}}",
     provider: "{{provider}}",
     user: "{{user}}",
+    username: "{{username}}",
+    name: "{{name}}",
     email: "{{email}}",
+    useremail: "{{useremail}}",
     pass: "{{pass}}",
     role: "{{role}}",
     status: "{{status}}",
@@ -646,6 +649,24 @@ function buildPayloadFromTemplate(templateText, context) {
   return resolveTemplateNode(parsed, context);
 }
 
+function ensurePayloadAliases(payload, aliases) {
+  const nextPayload = payload && typeof payload === "object" && !Array.isArray(payload)
+    ? { ...payload }
+    : {};
+
+  for (const [key, fallbackValue] of Object.entries(aliases || {})) {
+    if (
+      nextPayload[key] === undefined ||
+      nextPayload[key] === null ||
+      (typeof nextPayload[key] === "string" && !nextPayload[key].trim())
+    ) {
+      nextPayload[key] = fallbackValue;
+    }
+  }
+
+  return nextPayload;
+}
+
 async function loadUploadHistory() {
   try {
     const raw = await fs.readFile(uploadHistoryFile, "utf8");
@@ -1068,19 +1089,31 @@ app.post("/auth/login", async (req, res) => {
 
   try {
     const encryptedPassword = provider === "manual" ? encryptPasswordForWebhook(password) : "";
-    const loginPayload = buildPayloadFromTemplate(currentLoginBodyTemplate, {
-      node: "login",
-      provider,
-      user: "",
-      email,
-      pass: encryptedPassword,
-      role: "",
-      status: "",
-      requesterRole: "",
-      requesterEmail: "",
-      idToken,
-      accessToken
-    });
+    const loginPayload = ensurePayloadAliases(
+      buildPayloadFromTemplate(currentLoginBodyTemplate, {
+        node: "login",
+        provider,
+        user: "",
+        username: "",
+        name: "",
+        email,
+        useremail: email,
+        pass: encryptedPassword,
+        role: "",
+        status: "",
+        requesterRole: "",
+        requesterEmail: "",
+        idToken,
+        accessToken
+      }),
+      {
+        email,
+        useremail: email,
+        provider,
+        node: "login",
+        pass: encryptedPassword
+      }
+    );
     const webhookResponse = await axios.post(
       currentLoginWebhookUrl,
       loginPayload,
@@ -1221,19 +1254,38 @@ app.post("/auth/register", async (req, res) => {
 
   try {
     const encryptedPassword = encryptPasswordForWebhook(password);
-    const registerPayload = buildPayloadFromTemplate(currentLoginBodyTemplate, {
-      node: "register",
-      provider,
-      user: username,
-      email,
-      pass: encryptedPassword,
-      role: role || "user",
-      status,
-      requesterRole,
-      requesterEmail,
-      idToken: "",
-      accessToken: ""
-    });
+    const registerPayload = ensurePayloadAliases(
+      buildPayloadFromTemplate(currentLoginBodyTemplate, {
+        node: "register",
+        provider,
+        user: username,
+        username,
+        name: username,
+        email,
+        useremail: email,
+        pass: encryptedPassword,
+        role: role || "user",
+        status,
+        requesterRole,
+        requesterEmail,
+        idToken: "",
+        accessToken: ""
+      }),
+      {
+        node: "register",
+        provider,
+        user: username,
+        username,
+        name: username,
+        email,
+        useremail: email,
+        pass: encryptedPassword,
+        role: role || "user",
+        status,
+        requesterRole,
+        requesterEmail
+      }
+    );
     const webhookResponse = await axios.post(
       currentLoginWebhookUrl,
       registerPayload,
