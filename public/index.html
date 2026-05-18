@@ -56,7 +56,7 @@
 
         <div class="login-provider-grid">
           <div id="googleLoginButtonHost" class="provider-slot"></div>
-          <button id="microsoftLoginButton" type="button" class="secondary-button">
+          <button id="microsoftLoginButton" type="button" class="provider-button microsoft-provider-button">
             Continue with Microsoft
           </button>
         </div>
@@ -1273,7 +1273,17 @@
         setText("loginPasswordLabel", t("loginPasswordLabel"));
         manualLoginButton.textContent = t("loginButton");
         setText("loginDividerText", t("loginDivider"));
-        microsoftLoginButton.textContent = t("loginWithMicrosoft");
+        microsoftLoginButton.innerHTML = `
+          <span class="provider-button-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" role="img">
+              <rect x="2" y="2" width="9" height="9" fill="#f25022"></rect>
+              <rect x="13" y="2" width="9" height="9" fill="#7fba00"></rect>
+              <rect x="2" y="13" width="9" height="9" fill="#00a4ef"></rect>
+              <rect x="13" y="13" width="9" height="9" fill="#ffb900"></rect>
+            </svg>
+          </span>
+          <span>${escapeHtml(t("loginWithMicrosoft"))}</span>
+        `;
         checkButton.textContent = t("checkButton");
         exportButton.textContent = t("exportButton");
         setText("checkResponseTitle", t("checkResponseTitle"));

@@ -202,6 +202,14 @@ body.modal-open {
   background: linear-gradient(90deg, transparent, rgba(66, 133, 244, 0.18), transparent);
 }
 
+.microsoft-provider-button::after {
+  content: "";
+  position: absolute;
+  inset: auto 18px 12px 18px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 164, 239, 0.18), transparent);
+}
+
 .provider-real-slot {
   position: absolute;
   inset: auto auto 0 -9999px;
