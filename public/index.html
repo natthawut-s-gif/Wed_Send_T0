@@ -1769,6 +1769,10 @@
         setLoginMessageState({ state: "loading", raw: t("loginSending") });
         manualLoginButton.disabled = true;
         microsoftLoginButton.disabled = true;
+        const googleProviderButton = googleLoginButtonHost.querySelector(".provider-button");
+        if (googleProviderButton) {
+          googleProviderButton.disabled = true;
+        }
 
         try {
           const response = await fetch("/auth/login", {
@@ -1798,6 +1802,9 @@
         } finally {
           manualLoginButton.disabled = false;
           microsoftLoginButton.disabled = false;
+          if (googleProviderButton) {
+            googleProviderButton.disabled = false;
+          }
         }
       }
 
@@ -2073,23 +2080,33 @@
         googleLoginButtonHost.innerHTML = "";
         googleLoginRendered = false;
 
+        const customButton = document.createElement("button");
+        customButton.type = "button";
+        customButton.className = "provider-button google-provider-button";
+        customButton.innerHTML = `
+          <span class="provider-button-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" role="img">
+              <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.55-.2-2.27H12v4.3h6.44a5.5 5.5 0 0 1-2.39 3.61v3h3.87c2.27-2.09 3.57-5.18 3.57-8.64Z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.95-2.89l-3.87-3c-1.07.72-2.44 1.15-4.08 1.15-3.14 0-5.8-2.12-6.75-4.97H1.24v3.09A12 12 0 0 0 12 24Z"/>
+              <path fill="#FBBC05" d="M5.25 14.29A7.2 7.2 0 0 1 4.87 12c0-.79.14-1.56.38-2.29V6.62H1.24A12 12 0 0 0 0 12c0 1.93.46 3.75 1.24 5.38l4.01-3.09Z"/>
+              <path fill="#EA4335" d="M12 4.77c1.76 0 3.33.61 4.57 1.8l3.43-3.43C17.95 1.15 15.23 0 12 0A12 12 0 0 0 1.24 6.62l4.01 3.09c.95-2.85 3.61-4.94 6.75-4.94Z"/>
+            </svg>
+          </span>
+          <span>${escapeHtml(t("loginWithGoogle"))}</span>
+        `;
+
+        const realButtonHost = document.createElement("div");
+        realButtonHost.className = "provider-real-slot";
+        googleLoginButtonHost.appendChild(customButton);
+        googleLoginButtonHost.appendChild(realButtonHost);
+
         if (!currentSettingsPayload?.googleLoginConfigured) {
-          const fallbackButton = document.createElement("button");
-          fallbackButton.type = "button";
-          fallbackButton.className = "secondary-button";
-          fallbackButton.textContent = t("loginWithGoogle");
-          fallbackButton.disabled = true;
-          googleLoginButtonHost.appendChild(fallbackButton);
+          customButton.disabled = true;
           return;
         }
 
         if (!window.google?.accounts?.id) {
-          const fallbackButton = document.createElement("button");
-          fallbackButton.type = "button";
-          fallbackButton.className = "secondary-button";
-          fallbackButton.textContent = t("loginWithGoogle");
-          fallbackButton.disabled = true;
-          googleLoginButtonHost.appendChild(fallbackButton);
+          customButton.disabled = true;
           return;
         }
 
@@ -2097,13 +2114,26 @@
           client_id: currentSettingsPayload.googleClientId,
           callback: runGoogleLogin
         });
-        window.google.accounts.id.renderButton(googleLoginButtonHost, {
+        window.google.accounts.id.renderButton(realButtonHost, {
           theme: currentTheme === "dark" ? "filled_black" : "outline",
           size: "large",
           type: "standard",
           shape: "pill",
           text: "continue_with",
           width: 320
+        });
+        customButton.addEventListener("click", () => {
+          const proxyTarget =
+            realButtonHost.querySelector('div[role="button"]') ||
+            realButtonHost.querySelector("iframe") ||
+            realButtonHost.firstElementChild;
+
+          if (proxyTarget instanceof HTMLElement) {
+            proxyTarget.click();
+            return;
+          }
+
+          window.google.accounts.id.prompt();
         });
         googleLoginRendered = true;
       }
