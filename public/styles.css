@@ -1342,6 +1342,11 @@ button:disabled {
   border-radius: 20px;
 }
 
+.account-management-modal-card {
+  width: min(100%, 1040px);
+  max-height: calc(100vh - 24px);
+}
+
 .modal-head {
   display: flex;
   align-items: flex-start;
@@ -1435,6 +1440,20 @@ button:disabled {
 
 .account-user-list-table {
   max-height: 320px;
+}
+
+.account-user-list-input {
+  min-width: 120px;
+  width: 100%;
+  padding: 10px 12px;
+}
+
+.account-user-list-status-input {
+  min-width: 72px;
+}
+
+.account-user-list-save {
+  white-space: nowrap;
 }
 
 @media (max-width: 640px) {

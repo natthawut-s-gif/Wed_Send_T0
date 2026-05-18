@@ -382,7 +382,7 @@
 
     <div id="accountManagementModal" class="modal-backdrop hidden">
       <section
-        class="modal-card"
+        class="modal-card account-management-modal-card"
         role="dialog"
         aria-modal="true"
         aria-labelledby="accountManagementTitle"
@@ -962,6 +962,12 @@
           accountUserListColumnEmail: "Email",
           accountUserListColumnRole: "Role",
           accountUserListColumnStatus: "Status",
+          accountUserListColumnPassword: "New password",
+          accountUserListColumnAction: "Action",
+          accountUserListSaveButton: "Save",
+          accountUserListSaving: "Saving user update...",
+          accountUserListSaveSuccess: "User updated successfully.",
+          accountUserListSaveFailed: "Failed to update user.",
           logoutSuccess: "Logged out successfully.",
           loginWebhookMissing: "Login webhook is not configured yet.",
           loginGoogleMissing: "Google Login is not configured yet.",
@@ -1138,7 +1144,8 @@
       };
       let accountUserListState = {
         loading: false,
-        items: []
+        items: [],
+        savingIndex: null
       };
       let loginMessageState = {
         state: "idle",
@@ -1500,7 +1507,8 @@
               String(item.useremail || item.email || item.user || item.username || item.name || "")
                 .trim(),
             role: String(item.role || "").trim(),
-            status: String(item.status ?? "").trim()
+            status: String(item.status ?? "").trim(),
+            password: ""
           }));
       }
 
@@ -1539,12 +1547,73 @@
 
         const rows = accountUserListState.items
           .map(
-            (item) => `
+            (item, index) => `
               <tr>
-                <td>${escapeHtml(item.user || "-")}</td>
-                <td>${escapeHtml(item.email || "-")}</td>
-                <td>${escapeHtml(item.role || "-")}</td>
-                <td>${escapeHtml(item.status || "-")}</td>
+                <td>
+                  <input
+                    type="text"
+                    class="table-edit-input account-user-list-input"
+                    data-user-row-index="${index}"
+                    data-user-field="user"
+                    value="${escapeHtml(item.user || "")}"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="email"
+                    class="table-edit-input account-user-list-input"
+                    data-user-row-index="${index}"
+                    data-user-field="email"
+                    value="${escapeHtml(item.email || "")}"
+                  />
+                </td>
+                <td>
+                  <select
+                    class="table-edit-input account-user-list-input"
+                    data-user-row-index="${index}"
+                    data-user-field="role"
+                  >
+                    <option value="user" ${item.role === "user" ? "selected" : ""}>${escapeHtml(
+                      t("registerAccountRoleUser")
+                    )}</option>
+                    <option value="admin" ${item.role === "admin" ? "selected" : ""}>${escapeHtml(
+                      t("registerAccountRoleAdmin")
+                    )}</option>
+                  </select>
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    class="table-edit-input account-user-list-input account-user-list-status-input"
+                    data-user-row-index="${index}"
+                    data-user-field="status"
+                    value="${escapeHtml(item.status || "")}"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="password"
+                    class="table-edit-input account-user-list-input"
+                    data-user-row-index="${index}"
+                    data-user-field="password"
+                    value="${escapeHtml(item.password || "")}"
+                    placeholder="${escapeHtml(t("accountUserListColumnPassword"))}"
+                  />
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="secondary-button secondary-button-dark account-user-list-save"
+                    data-save-user-index="${index}"
+                    ${accountUserListState.savingIndex === index ? "disabled" : ""}
+                  >
+                    ${escapeHtml(
+                      accountUserListState.savingIndex === index
+                        ? t("accountUserListSaving")
+                        : t("accountUserListSaveButton")
+                    )}
+                  </button>
+                </td>
               </tr>
             `
           )
@@ -1559,6 +1628,8 @@
                   <th>${escapeHtml(t("accountUserListColumnEmail"))}</th>
                   <th>${escapeHtml(t("accountUserListColumnRole"))}</th>
                   <th>${escapeHtml(t("accountUserListColumnStatus"))}</th>
+                  <th>${escapeHtml(t("accountUserListColumnPassword"))}</th>
+                  <th>${escapeHtml(t("accountUserListColumnAction"))}</th>
                 </tr>
               </thead>
               <tbody>${rows}</tbody>
@@ -1803,14 +1874,16 @@
         }
       }
 
-      async function loadAccountUserList() {
+      async function loadAccountUserList(options = {}) {
+        const { preserveSuccessMessage = false } = options;
         if (!loginState.isAuthenticated || !isAdminUser()) {
           return;
         }
 
         accountUserListState = {
           ...accountUserListState,
-          loading: true
+          loading: true,
+          savingIndex: null
         };
         setAccountUserListMessageState({ state: "loading", key: "accountUserListLoading" });
 
@@ -1833,15 +1906,100 @@
 
           accountUserListState = {
             loading: false,
-            items: normalizeUserListItems(result.items)
+            items: normalizeUserListItems(result.items),
+            savingIndex: null
           };
-          setAccountUserListMessageState({ state: "success", key: "accountUserListLoaded" });
+          if (!preserveSuccessMessage) {
+            setAccountUserListMessageState({ state: "success", key: "accountUserListLoaded" });
+          } else {
+            renderAccountUserList();
+          }
         } catch (error) {
           accountUserListState = {
             loading: false,
-            items: []
+            items: [],
+            savingIndex: null
           };
           setAccountUserListMessageState({ state: "error", raw: error.message });
+        }
+      }
+
+      function updateAccountUserListField(rowIndex, field, value) {
+        if (rowIndex === null || Number.isNaN(rowIndex) || !field) {
+          return;
+        }
+
+        if (!Array.isArray(accountUserListState.items) || !accountUserListState.items[rowIndex]) {
+          return;
+        }
+
+        accountUserListState = {
+          ...accountUserListState,
+          items: accountUserListState.items.map((item, index) =>
+            index === rowIndex
+              ? {
+                  ...item,
+                  [field]: value
+                }
+              : item
+          )
+        };
+      }
+
+      async function saveAccountUser(rowIndex) {
+        if (!loginState.isAuthenticated || !isAdminUser()) {
+          return;
+        }
+
+        const item = accountUserListState.items?.[rowIndex];
+        if (!item) {
+          return;
+        }
+
+        if (!String(item.user || "").trim() || !String(item.email || "").trim()) {
+          setAccountUserListMessageState({ state: "error", raw: t("registerAccountRequired") });
+          return;
+        }
+
+        accountUserListState = {
+          ...accountUserListState,
+          savingIndex: rowIndex
+        };
+        renderAccountUserList();
+        setAccountUserListMessageState({ state: "loading", key: "accountUserListSaving" });
+
+        try {
+          const response = await fetch("/auth/update-user", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              id: item.id,
+              username: String(item.user || "").trim(),
+              email: String(item.email || "").trim().toLowerCase(),
+              password: String(item.password || ""),
+              role: String(item.role || "user").trim().toLowerCase(),
+              status: String(item.status || "").trim(),
+              requesterRole: loginState.role || "",
+              requesterEmail: loginState.email || ""
+            })
+          });
+          const result = await response.json();
+
+          if (!response.ok || !result.ok) {
+            throw new Error(result.message || t("accountUserListSaveFailed"));
+          }
+
+          setAccountUserListMessageState({ state: "success", key: "accountUserListSaveSuccess" });
+          await loadAccountUserList({ preserveSuccessMessage: true });
+        } catch (error) {
+          accountUserListState = {
+            ...accountUserListState,
+            savingIndex: null
+          };
+          setAccountUserListMessageState({ state: "error", raw: error.message });
+          renderAccountUserList();
         }
       }
 
@@ -4183,6 +4341,42 @@
         if (event.target === accountManagementModal) {
           closeAccountManagementModal();
         }
+      });
+
+      accountUserListContainer.addEventListener("input", (event) => {
+        const input = event.target.closest("[data-user-row-index]");
+        if (!input) {
+          return;
+        }
+
+        const rowIndex = Number(input.dataset.userRowIndex);
+        const field = input.dataset.userField || "";
+        updateAccountUserListField(Number.isNaN(rowIndex) ? null : rowIndex, field, input.value);
+      });
+
+      accountUserListContainer.addEventListener("change", (event) => {
+        const input = event.target.closest("[data-user-row-index]");
+        if (!input) {
+          return;
+        }
+
+        const rowIndex = Number(input.dataset.userRowIndex);
+        const field = input.dataset.userField || "";
+        updateAccountUserListField(Number.isNaN(rowIndex) ? null : rowIndex, field, input.value);
+      });
+
+      accountUserListContainer.addEventListener("click", async (event) => {
+        const saveButton = event.target.closest("[data-save-user-index]");
+        if (!saveButton) {
+          return;
+        }
+
+        const rowIndex = Number(saveButton.dataset.saveUserIndex);
+        if (Number.isNaN(rowIndex)) {
+          return;
+        }
+
+        await saveAccountUser(rowIndex);
       });
 
       chatForm.addEventListener("submit", async (event) => {

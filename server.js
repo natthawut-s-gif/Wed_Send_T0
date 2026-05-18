@@ -1432,6 +1432,115 @@ app.post("/auth/user-list", async (req, res) => {
   }
 });
 
+app.post("/auth/update-user", async (req, res) => {
+  const id = req.body?.id;
+  const username =
+    typeof req.body?.username === "string" ? req.body.username.trim() : "";
+  const email =
+    typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  const password = typeof req.body?.password === "string" ? req.body.password : "";
+  const role = typeof req.body?.role === "string" ? req.body.role.trim().toLowerCase() : "user";
+  const status = req.body?.status ?? 1;
+  const requesterRole =
+    typeof req.body?.requesterRole === "string"
+      ? req.body.requesterRole.trim().toLowerCase()
+      : "";
+  const requesterEmail =
+    typeof req.body?.requesterEmail === "string" ? req.body.requesterEmail.trim().toLowerCase() : "";
+
+  if (!currentLoginWebhookUrl) {
+    res.status(500).json({
+      ok: false,
+      message: "LOGIN_WEBHOOK_URL is not configured."
+    });
+    return;
+  }
+
+  if (requesterRole !== "admin") {
+    res.status(403).json({
+      ok: false,
+      message: "Only admin users can update accounts."
+    });
+    return;
+  }
+
+  if (id === undefined || id === null || !username || !email) {
+    res.status(400).json({
+      ok: false,
+      message: "Id, username, and email are required."
+    });
+    return;
+  }
+
+  try {
+    const encryptedPassword = password ? encryptPasswordForWebhook(password) : "";
+    const updatePayload = ensurePayloadAliases(
+      buildPayloadFromTemplate(currentLoginBodyTemplate, {
+        node: "updateuser",
+        provider: "manual",
+        id,
+        user: username,
+        username,
+        name: username,
+        email,
+        useremail: email,
+        pass: encryptedPassword,
+        role,
+        status,
+        requesterRole,
+        requesterEmail,
+        idToken: "",
+        accessToken: ""
+      }),
+      {
+        node: "updateuser",
+        provider: "manual",
+        id,
+        user: username,
+        username,
+        name: username,
+        email,
+        useremail: email,
+        pass: encryptedPassword,
+        role,
+        status,
+        requesterRole,
+        requesterEmail
+      }
+    );
+
+    const webhookResponse = await axios.post(currentLoginWebhookUrl, updatePayload, {
+      headers: {
+        "Content-Type": "application/json"
+      },
+      validateStatus: () => true
+    });
+
+    if (webhookResponse.status >= 400) {
+      res.status(502).json({
+        ok: false,
+        message: "Update user webhook returned an error.",
+        webhookStatus: webhookResponse.status,
+        webhookBody: webhookResponse.data
+      });
+      return;
+    }
+
+    res.json({
+      ok: true,
+      message: "User updated successfully.",
+      webhookStatus: webhookResponse.status,
+      webhookBody: webhookResponse.data
+    });
+  } catch (error) {
+    res.status(502).json({
+      ok: false,
+      message: "Failed to reach update user webhook.",
+      error: error.message
+    });
+  }
+});
+
 app.post("/doc-action", async (req, res) => {
   const action = typeof req.body?.action === "string" ? req.body.action.trim().toLowerCase() : "";
   const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
