@@ -1368,6 +1368,10 @@ app.post("/doc-action", async (req, res) => {
 app.post("/web-command", async (req, res) => {
   const command = typeof req.body?.message === "string" ? req.body.message.trim() : "";
   const node = typeof req.body?.node === "string" ? req.body.node.trim() : "";
+  const requesterRole =
+    typeof req.body?.requesterRole === "string"
+      ? req.body.requesterRole.trim().toLowerCase()
+      : "";
 
   if (!currentCommandWebhookUrl) {
     res.status(500).json({
@@ -1389,6 +1393,14 @@ app.post("/web-command", async (req, res) => {
     res.status(400).json({
       ok: false,
       message: "Node is required."
+    });
+    return;
+  }
+
+  if (requesterRole !== "admin") {
+    res.status(403).json({
+      ok: false,
+      message: "Only admin users can use command chat."
     });
     return;
   }
@@ -1441,10 +1453,23 @@ app.post("/web-command", async (req, res) => {
 });
 
 app.get("/web-command/options", async (req, res) => {
+  const requesterRole =
+    typeof req.query?.requesterRole === "string"
+      ? req.query.requesterRole.trim().toLowerCase()
+      : "";
+
   if (!currentCommandWebhookUrl) {
     res.status(500).json({
       ok: false,
       message: "COMMAND_WEBHOOK_URL is not configured."
+    });
+    return;
+  }
+
+  if (requesterRole !== "admin") {
+    res.status(403).json({
+      ok: false,
+      message: "Only admin users can load command nodes."
     });
     return;
   }

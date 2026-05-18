@@ -70,7 +70,7 @@
         <div class="topbar">
           <div id="eyebrowText" class="eyebrow">Public Upload URL</div>
           <div class="topbar-actions">
-            <button id="chatButton" type="button" class="icon-button">Chat</button>
+            <button id="chatButton" type="button" class="icon-button" data-admin-only="true">Chat</button>
             <button id="settingsButton" type="button" class="icon-button">Settings</button>
           </div>
         </div>
@@ -202,7 +202,7 @@
 
         <form id="settingsForm" class="modal-form">
           <section class="settings-status-grid">
-            <article class="settings-status-card">
+            <article class="settings-status-card" data-admin-only="true">
               <div class="settings-status-head">
                 <span id="settingsWebhookStatusLabel"></span>
                 <em id="currentWebhookStatus" class="preview-status idle"></em>
@@ -210,7 +210,7 @@
               <strong id="currentWebhookUrl"></strong>
             </article>
 
-            <article class="settings-status-card">
+            <article class="settings-status-card" data-admin-only="true">
               <div class="settings-status-head">
                 <span id="settingsActionWebhookStatusLabel"></span>
                 <em id="currentActionWebhookStatus" class="preview-status idle"></em>
@@ -218,7 +218,7 @@
               <strong id="currentActionWebhookUrl"></strong>
             </article>
 
-            <article class="settings-status-card">
+            <article class="settings-status-card" data-admin-only="true">
               <div class="settings-status-head">
                 <span id="settingsCommandWebhookStatusLabel"></span>
                 <em id="currentCommandWebhookStatus" class="preview-status idle"></em>
@@ -226,7 +226,7 @@
               <strong id="currentCommandWebhookUrl"></strong>
             </article>
 
-            <article class="settings-status-card">
+            <article class="settings-status-card" data-admin-only="true">
               <div class="settings-status-head">
                 <span id="settingsLoginWebhookStatusLabel"></span>
                 <em id="currentLoginWebhookStatus" class="preview-status idle"></em>
@@ -285,12 +285,12 @@
             <div id="languageHelperText" class="theme-helper"></div>
           </div>
 
-          <label class="field">
+          <label class="field" data-admin-only="true">
             <span id="settingsWebhookInputLabel"></span>
             <input id="settingsWebhookUrl" type="url" name="webhookUrl" required />
           </label>
 
-          <label class="field">
+          <label class="field" data-admin-only="true">
             <span id="settingsUploadBodyTemplateLabel"></span>
             <textarea
               id="settingsUploadBodyTemplate"
@@ -301,12 +301,12 @@
             ></textarea>
           </label>
 
-          <label class="field">
+          <label class="field" data-admin-only="true">
             <span id="settingsActionWebhookInputLabel"></span>
             <input id="settingsActionWebhookUrl" type="url" name="actionWebhookUrl" required />
           </label>
 
-          <label class="field">
+          <label class="field" data-admin-only="true">
             <span id="settingsActionBodyTemplateLabel"></span>
             <textarea
               id="settingsActionBodyTemplate"
@@ -317,12 +317,12 @@
             ></textarea>
           </label>
 
-          <label class="field">
+          <label class="field" data-admin-only="true">
             <span id="settingsCommandWebhookInputLabel"></span>
             <input id="settingsCommandWebhookUrl" type="url" name="commandWebhookUrl" required />
           </label>
 
-          <label class="field">
+          <label class="field" data-admin-only="true">
             <span id="settingsCommandBodyTemplateLabel"></span>
             <textarea
               id="settingsCommandBodyTemplate"
@@ -333,12 +333,12 @@
             ></textarea>
           </label>
 
-          <label class="field">
+          <label class="field" data-admin-only="true">
             <span id="settingsLoginWebhookInputLabel"></span>
             <input id="settingsLoginWebhookUrl" type="url" name="loginWebhookUrl" />
           </label>
 
-          <label class="field">
+          <label class="field" data-admin-only="true">
             <span id="settingsLoginBodyTemplateLabel"></span>
             <textarea
               id="settingsLoginBodyTemplate"
@@ -349,22 +349,22 @@
             ></textarea>
           </label>
 
-          <label class="field">
+          <label class="field" data-admin-only="true">
             <span id="settingsGoogleClientIdInputLabel"></span>
             <input id="settingsGoogleClientId" type="text" name="googleClientId" />
           </label>
 
-          <label class="field">
+          <label class="field" data-admin-only="true">
             <span id="settingsMicrosoftClientIdInputLabel"></span>
             <input id="settingsMicrosoftClientId" type="text" name="microsoftClientId" />
           </label>
 
-          <label class="field">
+          <label class="field" data-admin-only="true">
             <span id="settingsMicrosoftAuthorityInputLabel"></span>
             <input id="settingsMicrosoftAuthority" type="url" name="microsoftAuthority" />
           </label>
 
-          <section id="accountManagementSection" class="settings-status-card hidden">
+          <section id="accountManagementSection" class="settings-status-card hidden" data-admin-only="true">
             <div class="settings-status-head">
               <span id="accountManagementTitle"></span>
               <em id="accountManagementBadge" class="preview-status idle"></em>
@@ -407,7 +407,7 @@
 
           <div class="modal-actions">
             <button id="logoutButton" type="button" class="secondary-button"></button>
-            <button id="saveSettingsButton" type="submit"></button>
+            <button id="saveSettingsButton" type="submit" data-admin-only="true"></button>
           </div>
         </form>
       </section>
@@ -1010,6 +1010,7 @@
       const englishLanguageButton = document.getElementById("englishLanguageButton");
       const historyList = document.getElementById("historyList");
       const clearHistoryButton = document.getElementById("clearHistoryButton");
+      const adminOnlyElements = Array.from(document.querySelectorAll('[data-admin-only="true"]'));
       const LOGIN_SESSION_STORAGE_KEY = "invoice-extraction-login-session";
 
       let selectedFiles = [];
@@ -1274,6 +1275,7 @@
         renderLoginMessage();
         renderAccountManagementState();
         renderGoogleLoginButton();
+        renderRoleAccessState();
         renderChatMessage();
         renderChatNodeOptions();
         renderChatResponse();
@@ -1377,6 +1379,13 @@
         return String(loginState.role || "").trim().toLowerCase() === "admin";
       }
 
+      function renderRoleAccessState() {
+        const isAdmin = loginState.isAuthenticated && isAdminUser();
+        adminOnlyElements.forEach((element) => {
+          element.classList.toggle("hidden", !isAdmin);
+        });
+      }
+
       function renderAccountManagementState() {
         const canManageAccounts = loginState.isAuthenticated && isAdminUser();
         accountManagementSection.classList.toggle("hidden", !canManageAccounts);
@@ -1399,6 +1408,7 @@
         localStorage.setItem(LOGIN_SESSION_STORAGE_KEY, JSON.stringify(loginState));
         loginGate.classList.add("hidden");
         syncSenderFieldsFromLogin();
+        renderRoleAccessState();
         renderAccountManagementState();
         renderUploadHistory();
       }
@@ -1449,6 +1459,7 @@
         } catch (error) {
           // Ignore provider logout errors and keep local logout state.
         }
+        renderRoleAccessState();
         renderAccountManagementState();
         renderUploadHistory();
         syncModalOpenState();
@@ -1836,7 +1847,8 @@
         renderChatNodeOptions();
 
         try {
-          const response = await fetch("/web-command/options");
+          const roleQuery = encodeURIComponent(loginState.role || "");
+          const response = await fetch(`/web-command/options?requesterRole=${roleQuery}`);
           const result = await response.json();
 
           if (!response.ok || !result.ok) {
@@ -1937,6 +1949,9 @@
       }
 
       function openChatModal() {
+        if (!loginState.isAuthenticated || !isAdminUser()) {
+          return;
+        }
         chatModal.classList.remove("hidden");
         syncModalOpenState();
         renderChatMessage();
@@ -3771,7 +3786,8 @@
             },
             body: JSON.stringify({
               message: command,
-              node
+              node,
+              requesterRole: loginState.role || ""
             })
           });
 
