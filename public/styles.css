@@ -1411,6 +1411,10 @@ button:disabled {
   box-shadow: 0 30px 80px rgba(46, 28, 16, 0.22);
 }
 
+.settings-modal-card {
+  width: min(100%, 860px);
+}
+
 .export-modal-card {
   width: calc(100vw - 24px);
   max-width: none;
