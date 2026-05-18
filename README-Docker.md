@@ -19,6 +19,10 @@ cp .env.example .env
    - `N8N_WEBHOOK_URL`
    - `EXPORT_DOC_WEBHOOK_URL` if you use document actions
    - `COMMAND_WEBHOOK_URL` if you use command chat
+   - `LOGIN_WEBHOOK_URL` if you use login/account management
+   - `LOGIN_PASSWORD_SECRET` if you use manual login/register/update user
+   - `GOOGLE_CLIENT_ID` if you use Google sign-in
+   - `MICROSOFT_CLIENT_ID` if you use Microsoft sign-in
    You can set them in `.env`, or pass them from the shell when running Docker Compose.
 3. Start the service:
 
@@ -30,6 +34,11 @@ On first start, the app will automatically create runtime files inside `./data`:
 
 - `data/webhook-settings.json`
 - `data/upload-history.json`
+
+Important:
+- When running in Docker, webhook/auth values from `.env` are passed into the container.
+- If both `.env` and `data/webhook-settings.json` contain values, the `.env` values take priority at runtime.
+- This is useful for Linux servers where you want Docker deployment to always follow environment variables.
 
 4. Open:
 

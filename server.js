@@ -126,6 +126,10 @@ let currentLoginBodyTemplate = defaultLoginBodyTemplate;
 let uploadHistory = [];
 const uploadProgressStore = new Map();
 
+function hasConfiguredEnvValue(name) {
+  return typeof process.env[name] === "string" && process.env[name].trim() !== "";
+}
+
 const runtimeStats = {
   uploadAttempts: 0,
   successfulForwards: 0,
@@ -433,24 +437,77 @@ function sanitizeWebhookSettings(payload) {
   };
 }
 
+function applyEnvironmentOverrides(settings) {
+  const next = { ...settings };
+
+  if (hasConfiguredEnvValue("N8N_WEBHOOK_URL")) {
+    next.webhookUrl = defaultWebhookUrl;
+  }
+
+  if (hasConfiguredEnvValue("EXPORT_DOC_WEBHOOK_URL")) {
+    next.actionWebhookUrl = defaultExportDocWebhookUrl;
+  }
+
+  if (hasConfiguredEnvValue("COMMAND_WEBHOOK_URL")) {
+    next.commandWebhookUrl = defaultCommandWebhookUrl;
+  }
+
+  if (hasConfiguredEnvValue("LOGIN_WEBHOOK_URL")) {
+    next.loginWebhookUrl = defaultLoginWebhookUrl;
+  }
+
+  if (hasConfiguredEnvValue("GOOGLE_CLIENT_ID")) {
+    next.googleClientId = defaultGoogleClientId;
+  }
+
+  if (hasConfiguredEnvValue("MICROSOFT_CLIENT_ID")) {
+    next.microsoftClientId = defaultMicrosoftClientId;
+  }
+
+  if (hasConfiguredEnvValue("MICROSOFT_AUTHORITY")) {
+    next.microsoftAuthority = defaultMicrosoftAuthority;
+  }
+
+  return next;
+}
+
+function applyCurrentWebhookSettings(settings) {
+  currentWebhookUrl = settings.webhookUrl;
+  currentExportDocWebhookUrl = settings.actionWebhookUrl;
+  currentCommandWebhookUrl = settings.commandWebhookUrl;
+  currentLoginWebhookUrl = settings.loginWebhookUrl;
+  currentGoogleClientId = settings.googleClientId;
+  currentMicrosoftClientId = settings.microsoftClientId;
+  currentMicrosoftAuthority = settings.microsoftAuthority;
+  currentUploadBodyTemplate = settings.uploadBodyTemplate;
+  currentActionBodyTemplate = settings.actionBodyTemplate;
+  currentCommandBodyTemplate = settings.commandBodyTemplate;
+  currentLoginBodyTemplate = settings.loginBodyTemplate;
+}
+
 async function loadWebhookSettings() {
   try {
     const raw = await fs.readFile(settingsFile, "utf8");
-    const parsed = sanitizeWebhookSettings(JSON.parse(raw));
-    currentWebhookUrl = parsed.webhookUrl;
-    currentExportDocWebhookUrl = parsed.actionWebhookUrl;
-    currentCommandWebhookUrl = parsed.commandWebhookUrl;
-    currentLoginWebhookUrl = parsed.loginWebhookUrl;
-    currentGoogleClientId = parsed.googleClientId;
-    currentMicrosoftClientId = parsed.microsoftClientId;
-    currentMicrosoftAuthority = parsed.microsoftAuthority;
-    currentUploadBodyTemplate = parsed.uploadBodyTemplate;
-    currentActionBodyTemplate = parsed.actionBodyTemplate;
-    currentCommandBodyTemplate = parsed.commandBodyTemplate;
-    currentLoginBodyTemplate = parsed.loginBodyTemplate;
+    const parsedFile = JSON.parse(raw);
+    const parsed = applyEnvironmentOverrides(
+      sanitizeWebhookSettings({
+        webhookUrl: parsedFile?.webhookUrl || currentWebhookUrl,
+        actionWebhookUrl: parsedFile?.actionWebhookUrl || currentExportDocWebhookUrl,
+        commandWebhookUrl: parsedFile?.commandWebhookUrl || currentCommandWebhookUrl,
+        loginWebhookUrl: parsedFile?.loginWebhookUrl || currentLoginWebhookUrl,
+        googleClientId: parsedFile?.googleClientId || currentGoogleClientId,
+        microsoftClientId: parsedFile?.microsoftClientId || currentMicrosoftClientId,
+        microsoftAuthority: parsedFile?.microsoftAuthority || currentMicrosoftAuthority,
+        uploadBodyTemplate: parsedFile?.uploadBodyTemplate || currentUploadBodyTemplate,
+        actionBodyTemplate: parsedFile?.actionBodyTemplate || currentActionBodyTemplate,
+        commandBodyTemplate: parsedFile?.commandBodyTemplate || currentCommandBodyTemplate,
+        loginBodyTemplate: parsedFile?.loginBodyTemplate || currentLoginBodyTemplate
+      })
+    );
+    applyCurrentWebhookSettings(parsed);
   } catch (error) {
     if (error.code === "ENOENT") {
-      await saveWebhookSettings({
+      const initialSettings = applyEnvironmentOverrides({
         webhookUrl: currentWebhookUrl,
         actionWebhookUrl: currentExportDocWebhookUrl,
         commandWebhookUrl: currentCommandWebhookUrl,
@@ -463,6 +520,7 @@ async function loadWebhookSettings() {
         commandBodyTemplate: currentCommandBodyTemplate,
         loginBodyTemplate: currentLoginBodyTemplate
       });
+      await saveWebhookSettings(initialSettings);
       return;
     }
 
@@ -474,18 +532,9 @@ async function saveWebhookSettings(payload) {
   const sanitized = sanitizeWebhookSettings(payload);
   await ensureParentDirectory(settingsFile);
   await fs.writeFile(settingsFile, `${JSON.stringify(sanitized, null, 2)}\n`, "utf8");
-  currentWebhookUrl = sanitized.webhookUrl;
-  currentExportDocWebhookUrl = sanitized.actionWebhookUrl;
-  currentCommandWebhookUrl = sanitized.commandWebhookUrl;
-  currentLoginWebhookUrl = sanitized.loginWebhookUrl;
-  currentGoogleClientId = sanitized.googleClientId;
-  currentMicrosoftClientId = sanitized.microsoftClientId;
-  currentMicrosoftAuthority = sanitized.microsoftAuthority;
-  currentUploadBodyTemplate = sanitized.uploadBodyTemplate;
-  currentActionBodyTemplate = sanitized.actionBodyTemplate;
-  currentCommandBodyTemplate = sanitized.commandBodyTemplate;
-  currentLoginBodyTemplate = sanitized.loginBodyTemplate;
-  return sanitized;
+  const effective = applyEnvironmentOverrides(sanitized);
+  applyCurrentWebhookSettings(effective);
+  return effective;
 }
 
 function encryptPasswordForWebhook(password) {
