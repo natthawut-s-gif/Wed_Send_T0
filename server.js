@@ -13,6 +13,40 @@ for (const envFilePath of dotenvCandidates) {
   }
 }
 
+function sanitizeConfiguredEnvValue(value, placeholderSubstrings = []) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  if (placeholderSubstrings.some((substring) => trimmed.includes(substring))) {
+    return "";
+  }
+
+  return trimmed;
+}
+
+const configuredEnv = {
+  N8N_WEBHOOK_URL: sanitizeConfiguredEnvValue(process.env.N8N_WEBHOOK_URL, ["your-n8n-domain"]),
+  EXPORT_DOC_WEBHOOK_URL: sanitizeConfiguredEnvValue(process.env.EXPORT_DOC_WEBHOOK_URL, [
+    "your-n8n-domain"
+  ]),
+  COMMAND_WEBHOOK_URL: sanitizeConfiguredEnvValue(process.env.COMMAND_WEBHOOK_URL, [
+    "your-n8n-domain"
+  ]),
+  LOGIN_WEBHOOK_URL: sanitizeConfiguredEnvValue(process.env.LOGIN_WEBHOOK_URL, ["your-n8n-domain"]),
+  LOGIN_PASSWORD_SECRET: sanitizeConfiguredEnvValue(process.env.LOGIN_PASSWORD_SECRET, [
+    "replace-with-a-long-random-secret"
+  ]),
+  GOOGLE_CLIENT_ID: sanitizeConfiguredEnvValue(process.env.GOOGLE_CLIENT_ID),
+  MICROSOFT_CLIENT_ID: sanitizeConfiguredEnvValue(process.env.MICROSOFT_CLIENT_ID),
+  MICROSOFT_AUTHORITY: sanitizeConfiguredEnvValue(process.env.MICROSOFT_AUTHORITY)
+};
+
 const fs = require("fs/promises");
 const os = require("os");
 const crypto = require("crypto");
@@ -38,15 +72,15 @@ const settingsFile = process.env.WEBHOOK_SETTINGS_FILE
 const uploadHistoryFile = process.env.UPLOAD_HISTORY_FILE
   ? path.resolve(process.env.UPLOAD_HISTORY_FILE)
   : path.join(dataDir, "upload-history.json");
-const defaultWebhookUrl = process.env.N8N_WEBHOOK_URL || "";
-const defaultExportDocWebhookUrl = process.env.EXPORT_DOC_WEBHOOK_URL || "";
-const defaultCommandWebhookUrl = process.env.COMMAND_WEBHOOK_URL || "";
-const defaultLoginWebhookUrl = process.env.LOGIN_WEBHOOK_URL || "";
-const defaultGoogleClientId = process.env.GOOGLE_CLIENT_ID || "";
-const defaultMicrosoftClientId = process.env.MICROSOFT_CLIENT_ID || "";
+const defaultWebhookUrl = configuredEnv.N8N_WEBHOOK_URL || "";
+const defaultExportDocWebhookUrl = configuredEnv.EXPORT_DOC_WEBHOOK_URL || "";
+const defaultCommandWebhookUrl = configuredEnv.COMMAND_WEBHOOK_URL || "";
+const defaultLoginWebhookUrl = configuredEnv.LOGIN_WEBHOOK_URL || "";
+const defaultGoogleClientId = configuredEnv.GOOGLE_CLIENT_ID || "";
+const defaultMicrosoftClientId = configuredEnv.MICROSOFT_CLIENT_ID || "";
 const defaultMicrosoftAuthority =
-  process.env.MICROSOFT_AUTHORITY || "https://login.microsoftonline.com/common";
-const loginPasswordSecret = process.env.LOGIN_PASSWORD_SECRET || "";
+  configuredEnv.MICROSOFT_AUTHORITY || "https://login.microsoftonline.com/common";
+const loginPasswordSecret = configuredEnv.LOGIN_PASSWORD_SECRET || "";
 const uploadHistoryLimit = Number(process.env.UPLOAD_HISTORY_LIMIT || 100);
 const maxFiles = Number(process.env.MAX_FILES || 10);
 const maxFileSizeMb = Number(process.env.MAX_FILE_SIZE_MB || 10);
@@ -139,7 +173,7 @@ let uploadHistory = [];
 const uploadProgressStore = new Map();
 
 function hasConfiguredEnvValue(name) {
-  return typeof process.env[name] === "string" && process.env[name].trim() !== "";
+  return typeof configuredEnv[name] === "string" && configuredEnv[name].trim() !== "";
 }
 
 function getEnvManagedWebhookSettings() {
