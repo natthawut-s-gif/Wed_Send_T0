@@ -364,9 +364,41 @@
             <input id="settingsMicrosoftAuthority" type="url" name="microsoftAuthority" />
           </label>
 
-          <section id="accountManagementSection" class="settings-status-card hidden" data-admin-only="true">
+          <div id="settingsMessage" class="settings-message idle"></div>
+
+          <div class="modal-actions">
+            <button id="logoutButton" type="button" class="secondary-button"></button>
+            <button
+              id="openAccountManagementButton"
+              type="button"
+              class="secondary-button secondary-button-dark"
+              data-admin-only="true"
+            ></button>
+            <button id="saveSettingsButton" type="submit" data-admin-only="true"></button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <div id="accountManagementModal" class="modal-backdrop hidden">
+      <section
+        class="modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="accountManagementTitle"
+      >
+        <div class="modal-head">
+          <div>
+            <div id="accountManagementKicker" class="status-kicker"></div>
+            <h2 id="accountManagementTitle"></h2>
+          </div>
+          <button id="closeAccountManagementButton" type="button" class="close-button"></button>
+        </div>
+
+        <div class="modal-form">
+          <section id="accountManagementSection" class="settings-status-card">
             <div class="settings-status-head">
-              <span id="accountManagementTitle"></span>
+              <span id="accountManagementSectionLabel"></span>
               <em id="accountManagementBadge" class="preview-status idle"></em>
             </div>
             <p id="accountManagementDescription" class="theme-helper"></p>
@@ -398,18 +430,19 @@
               </select>
             </label>
 
-            <button id="registerAccountButton" type="button" class="secondary-button secondary-button-dark">
-              Create account
-            </button>
+            <div id="accountManagementMessage" class="settings-message idle"></div>
+
+            <div class="modal-actions">
+              <button
+                id="registerAccountButton"
+                type="button"
+                class="secondary-button secondary-button-dark"
+              >
+                Create account
+              </button>
+            </div>
           </section>
-
-          <div id="settingsMessage" class="settings-message idle"></div>
-
-          <div class="modal-actions">
-            <button id="logoutButton" type="button" class="secondary-button"></button>
-            <button id="saveSettingsButton" type="submit" data-admin-only="true"></button>
-          </div>
-        </form>
+        </div>
       </section>
     </div>
 
@@ -894,7 +927,10 @@
           registerAccountRoleLabel: "Account role",
           registerAccountRoleUser: "User",
           registerAccountRoleAdmin: "Admin",
+          accountManagementOpenButton: "Account Management",
+          accountManagementKicker: "Admin Access",
           registerAccountButton: "Create account",
+          accountManagementReady: "Ready to create a new account.",
           registerAccountRequired: "Please enter username, email, and password for the new account.",
           logoutSuccess: "Logged out successfully.",
           loginWebhookMissing: "Login webhook is not configured yet.",
@@ -971,6 +1007,9 @@
       const exportAndClearConfirmButton = document.getElementById("exportAndClearConfirmButton");
       const settingsModal = document.getElementById("settingsModal");
       const closeSettingsButton = document.getElementById("closeSettingsButton");
+      const accountManagementModal = document.getElementById("accountManagementModal");
+      const closeAccountManagementButton = document.getElementById("closeAccountManagementButton");
+      const openAccountManagementButton = document.getElementById("openAccountManagementButton");
       const settingsForm = document.getElementById("settingsForm");
       const settingsWebhookUrl = document.getElementById("settingsWebhookUrl");
       const settingsUploadBodyTemplate = document.getElementById("settingsUploadBodyTemplate");
@@ -994,6 +1033,7 @@
       const settingsMicrosoftAuthority = document.getElementById("settingsMicrosoftAuthority");
       const accountManagementSection = document.getElementById("accountManagementSection");
       const accountManagementBadge = document.getElementById("accountManagementBadge");
+      const accountManagementMessage = document.getElementById("accountManagementMessage");
       const registerAccountUsernameInput = document.getElementById("registerAccountUsernameInput");
       const registerAccountEmailInput = document.getElementById("registerAccountEmailInput");
       const registerAccountPasswordInput = document.getElementById("registerAccountPasswordInput");
@@ -1050,6 +1090,11 @@
       let settingsMessageState = {
         state: "idle",
         key: "settingsLoadingCurrent",
+        raw: null
+      };
+      let accountManagementMessageState = {
+        state: "idle",
+        key: "accountManagementReady",
         raw: null
       };
       let loginMessageState = {
@@ -1201,6 +1246,9 @@
         setText("settingsKicker", t("settingsKicker"));
         setText("settingsTitle", t("settingsTitle"));
         closeSettingsButton.textContent = t("closeButton");
+        openAccountManagementButton.textContent = t("accountManagementOpenButton");
+        setText("accountManagementKicker", t("accountManagementKicker"));
+        closeAccountManagementButton.textContent = t("closeButton");
         setText("chatKicker", t("chatKicker"));
         setText("chatTitle", t("chatTitle"));
         closeChatButton.textContent = t("closeButton");
@@ -1253,6 +1301,7 @@
         );
         settingsMicrosoftAuthority.placeholder = t("settingsMicrosoftAuthorityPlaceholder");
         setText("accountManagementTitle", t("registerAccountTitle"));
+        setText("accountManagementSectionLabel", t("registerAccountTitle"));
         setText("accountManagementDescription", t("registerAccountDescription"));
         setText("registerAccountUsernameLabel", t("registerAccountUsernameLabel"));
         setText("registerAccountEmailLabel", t("registerAccountEmailLabel"));
@@ -1273,6 +1322,7 @@
         logoutButton.textContent = t("logoutButton");
         saveSettingsButton.textContent = t("saveSettingsButton");
         renderLoginMessage();
+        renderAccountManagementMessage();
         renderAccountManagementState();
         renderGoogleLoginButton();
         renderRoleAccessState();
@@ -1365,6 +1415,17 @@
         settingsMessage.textContent = settingsMessageState.raw || t(settingsMessageState.key);
       }
 
+      function setAccountManagementMessageState({ state = "idle", key = null, raw = null }) {
+        accountManagementMessageState = { state, key, raw };
+        renderAccountManagementMessage();
+      }
+
+      function renderAccountManagementMessage() {
+        accountManagementMessage.className = `settings-message ${accountManagementMessageState.state}`;
+        accountManagementMessage.textContent =
+          accountManagementMessageState.raw || t(accountManagementMessageState.key);
+      }
+
       function setLoginMessageState({ state = "idle", raw = "" }) {
         loginMessageState = { state, raw };
         renderLoginMessage();
@@ -1388,11 +1449,13 @@
 
       function renderAccountManagementState() {
         const canManageAccounts = loginState.isAuthenticated && isAdminUser();
-        accountManagementSection.classList.toggle("hidden", !canManageAccounts);
         accountManagementBadge.className = `preview-status ${canManageAccounts ? "success" : "idle"}`;
         accountManagementBadge.textContent = canManageAccounts
           ? t("registerAccountBadgeAdmin")
           : t("registerAccountBadgeLocked");
+        if (!canManageAccounts) {
+          accountManagementModal.classList.add("hidden");
+        }
       }
 
       function persistLoginSession(session) {
@@ -1442,7 +1505,10 @@
         localStorage.removeItem(LOGIN_SESSION_STORAGE_KEY);
         loginPasswordInput.value = "";
         registerAccountUsernameInput.value = "";
+        registerAccountEmailInput.value = "";
         registerAccountPasswordInput.value = "";
+        registerAccountRoleSelect.value = "user";
+        setAccountManagementMessageState({ state: "idle", key: "accountManagementReady" });
         syncSenderFieldsFromLogin();
         loginGate.classList.remove("hidden");
         setLoginMessageState({ state: "success", raw: t("logoutSuccess") });
@@ -1529,7 +1595,7 @@
           throw new Error(t("registerAdminOnly"));
         }
 
-        setSettingsMessageState({ state: "loading", raw: t("registerSending") });
+        setAccountManagementMessageState({ state: "loading", raw: t("registerSending") });
         registerAccountButton.disabled = true;
 
         try {
@@ -1551,7 +1617,7 @@
             throw new Error(result.message || t("registerFailed"));
           }
 
-          setSettingsMessageState({ state: "success", raw: t("registerSuccess") });
+          setAccountManagementMessageState({ state: "success", raw: t("registerSuccess") });
           return result;
         } finally {
           registerAccountButton.disabled = false;
@@ -1581,7 +1647,7 @@
         const role = registerAccountRoleSelect.value || "user";
 
         if (!username || !email || !password) {
-          setSettingsMessageState({ state: "error", raw: t("registerAccountRequired") });
+          setAccountManagementMessageState({ state: "error", raw: t("registerAccountRequired") });
           return;
         }
 
@@ -1592,7 +1658,7 @@
           registerAccountPasswordInput.value = "";
           registerAccountRoleSelect.value = "user";
         } catch (error) {
-          setSettingsMessageState({ state: "error", raw: error.message });
+          setAccountManagementMessageState({ state: "error", raw: error.message });
         }
       }
 
@@ -1804,6 +1870,7 @@
       function syncModalOpenState() {
         const isAnyModalOpen =
           !settingsModal.classList.contains("hidden") ||
+          !accountManagementModal.classList.contains("hidden") ||
           !chatModal.classList.contains("hidden") ||
           !exportPreviewModal.classList.contains("hidden");
         document.body.classList.toggle("modal-open", isAnyModalOpen);
@@ -1945,6 +2012,21 @@
 
       function closeSettingsModal() {
         settingsModal.classList.add("hidden");
+        syncModalOpenState();
+      }
+
+      function openAccountManagementModal() {
+        if (!loginState.isAuthenticated || !isAdminUser()) {
+          return;
+        }
+        accountManagementModal.classList.remove("hidden");
+        setAccountManagementMessageState({ state: "idle", key: "accountManagementReady" });
+        syncModalOpenState();
+        registerAccountUsernameInput.focus();
+      }
+
+      function closeAccountManagementModal() {
+        accountManagementModal.classList.add("hidden");
         syncModalOpenState();
       }
 
@@ -3829,12 +3911,20 @@
         openSettingsModal();
       });
 
+      openAccountManagementButton.addEventListener("click", () => {
+        openAccountManagementModal();
+      });
+
       closeChatButton.addEventListener("click", () => {
         closeChatModal();
       });
 
       closeSettingsButton.addEventListener("click", () => {
         closeSettingsModal();
+      });
+
+      closeAccountManagementButton.addEventListener("click", () => {
+        closeAccountManagementModal();
       });
 
       chatModal.addEventListener("click", (event) => {
@@ -3901,6 +3991,12 @@
         }
       });
 
+      accountManagementModal.addEventListener("click", (event) => {
+        if (event.target === accountManagementModal) {
+          closeAccountManagementModal();
+        }
+      });
+
       chatForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         await runChatCommand();
@@ -3909,6 +4005,10 @@
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape" && !chatModal.classList.contains("hidden")) {
           closeChatModal();
+        }
+
+        if (event.key === "Escape" && !accountManagementModal.classList.contains("hidden")) {
+          closeAccountManagementModal();
         }
 
         if (event.key === "Escape" && !settingsModal.classList.contains("hidden")) {
