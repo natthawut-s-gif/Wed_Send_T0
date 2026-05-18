@@ -1412,7 +1412,8 @@ button:disabled {
 }
 
 .settings-modal-card {
-  width: min(100%, 860px);
+  width: min(100%, 1040px);
+  max-height: calc(100vh - 24px);
 }
 
 .export-modal-card {

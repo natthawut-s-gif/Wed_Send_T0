@@ -130,6 +130,12 @@ const defaultActionBodyTemplate = JSON.stringify(
   null,
   2
 );
+const defaultCheckActionBodyTemplate = defaultActionBodyTemplate;
+const defaultExportActionBodyTemplate = defaultActionBodyTemplate;
+const defaultExportAndClearActionBodyTemplate = defaultActionBodyTemplate;
+const defaultClearHistoryActionBodyTemplate = defaultActionBodyTemplate;
+const defaultEditActionBodyTemplate = defaultActionBodyTemplate;
+const defaultDeleteActionBodyTemplate = defaultActionBodyTemplate;
 const defaultCommandBodyTemplate = JSON.stringify(
   {
     message: "{{message}}",
@@ -167,6 +173,12 @@ let currentMicrosoftClientId = defaultMicrosoftClientId;
 let currentMicrosoftAuthority = defaultMicrosoftAuthority;
 let currentUploadBodyTemplate = defaultUploadBodyTemplate;
 let currentActionBodyTemplate = defaultActionBodyTemplate;
+let currentCheckActionBodyTemplate = defaultCheckActionBodyTemplate;
+let currentExportActionBodyTemplate = defaultExportActionBodyTemplate;
+let currentExportAndClearActionBodyTemplate = defaultExportAndClearActionBodyTemplate;
+let currentClearHistoryActionBodyTemplate = defaultClearHistoryActionBodyTemplate;
+let currentEditActionBodyTemplate = defaultEditActionBodyTemplate;
+let currentDeleteActionBodyTemplate = defaultDeleteActionBodyTemplate;
 let currentCommandBodyTemplate = defaultCommandBodyTemplate;
 let currentLoginBodyTemplate = defaultLoginBodyTemplate;
 let uploadHistory = [];
@@ -290,6 +302,12 @@ function getWebhookSettings() {
     microsoftAuthority: currentMicrosoftAuthority,
     uploadBodyTemplate: currentUploadBodyTemplate,
     actionBodyTemplate: currentActionBodyTemplate,
+    checkActionBodyTemplate: currentCheckActionBodyTemplate,
+    exportActionBodyTemplate: currentExportActionBodyTemplate,
+    exportAndClearActionBodyTemplate: currentExportAndClearActionBodyTemplate,
+    clearHistoryActionBodyTemplate: currentClearHistoryActionBodyTemplate,
+    editActionBodyTemplate: currentEditActionBodyTemplate,
+    deleteActionBodyTemplate: currentDeleteActionBodyTemplate,
     commandBodyTemplate: currentCommandBodyTemplate,
     loginBodyTemplate: currentLoginBodyTemplate
   };
@@ -414,6 +432,42 @@ function sanitizeWebhookSettings(payload) {
     typeof payload?.actionBodyTemplate === "string"
       ? payload.actionBodyTemplate.trim()
       : currentActionBodyTemplate;
+  const checkActionBodyTemplate =
+    typeof payload?.checkActionBodyTemplate === "string"
+      ? payload.checkActionBodyTemplate.trim()
+      : payload?.actionBodyTemplate
+        ? String(payload.actionBodyTemplate).trim()
+        : currentCheckActionBodyTemplate;
+  const exportActionBodyTemplate =
+    typeof payload?.exportActionBodyTemplate === "string"
+      ? payload.exportActionBodyTemplate.trim()
+      : payload?.actionBodyTemplate
+        ? String(payload.actionBodyTemplate).trim()
+        : currentExportActionBodyTemplate;
+  const exportAndClearActionBodyTemplate =
+    typeof payload?.exportAndClearActionBodyTemplate === "string"
+      ? payload.exportAndClearActionBodyTemplate.trim()
+      : payload?.actionBodyTemplate
+        ? String(payload.actionBodyTemplate).trim()
+        : currentExportAndClearActionBodyTemplate;
+  const clearHistoryActionBodyTemplate =
+    typeof payload?.clearHistoryActionBodyTemplate === "string"
+      ? payload.clearHistoryActionBodyTemplate.trim()
+      : payload?.actionBodyTemplate
+        ? String(payload.actionBodyTemplate).trim()
+        : currentClearHistoryActionBodyTemplate;
+  const editActionBodyTemplate =
+    typeof payload?.editActionBodyTemplate === "string"
+      ? payload.editActionBodyTemplate.trim()
+      : payload?.actionBodyTemplate
+        ? String(payload.actionBodyTemplate).trim()
+        : currentEditActionBodyTemplate;
+  const deleteActionBodyTemplate =
+    typeof payload?.deleteActionBodyTemplate === "string"
+      ? payload.deleteActionBodyTemplate.trim()
+      : payload?.actionBodyTemplate
+        ? String(payload.actionBodyTemplate).trim()
+        : currentDeleteActionBodyTemplate;
   const commandBodyTemplate =
     typeof payload?.commandBodyTemplate === "string"
       ? payload.commandBodyTemplate.trim()
@@ -473,6 +527,18 @@ function sanitizeWebhookSettings(payload) {
   const templates = [
     ["Upload Body Template", uploadBodyTemplate || defaultUploadBodyTemplate],
     ["Action Body Template", actionBodyTemplate || defaultActionBodyTemplate],
+    ["Check Action Body Template", checkActionBodyTemplate || defaultCheckActionBodyTemplate],
+    ["Export Action Body Template", exportActionBodyTemplate || defaultExportActionBodyTemplate],
+    [
+      "Export and Clear Action Body Template",
+      exportAndClearActionBodyTemplate || defaultExportAndClearActionBodyTemplate
+    ],
+    [
+      "Clear History Action Body Template",
+      clearHistoryActionBodyTemplate || defaultClearHistoryActionBodyTemplate
+    ],
+    ["Edit Action Body Template", editActionBodyTemplate || defaultEditActionBodyTemplate],
+    ["Delete Action Body Template", deleteActionBodyTemplate || defaultDeleteActionBodyTemplate],
     ["Command Body Template", commandBodyTemplate || defaultCommandBodyTemplate],
     ["Login Body Template", loginBodyTemplate || defaultLoginBodyTemplate]
   ];
@@ -501,6 +567,14 @@ function sanitizeWebhookSettings(payload) {
     microsoftAuthority: microsoftAuthority || defaultMicrosoftAuthority,
     uploadBodyTemplate: uploadBodyTemplate || defaultUploadBodyTemplate,
     actionBodyTemplate: actionBodyTemplate || defaultActionBodyTemplate,
+    checkActionBodyTemplate: checkActionBodyTemplate || defaultCheckActionBodyTemplate,
+    exportActionBodyTemplate: exportActionBodyTemplate || defaultExportActionBodyTemplate,
+    exportAndClearActionBodyTemplate:
+      exportAndClearActionBodyTemplate || defaultExportAndClearActionBodyTemplate,
+    clearHistoryActionBodyTemplate:
+      clearHistoryActionBodyTemplate || defaultClearHistoryActionBodyTemplate,
+    editActionBodyTemplate: editActionBodyTemplate || defaultEditActionBodyTemplate,
+    deleteActionBodyTemplate: deleteActionBodyTemplate || defaultDeleteActionBodyTemplate,
     commandBodyTemplate: commandBodyTemplate || defaultCommandBodyTemplate,
     loginBodyTemplate: loginBodyTemplate || defaultLoginBodyTemplate
   };
@@ -584,6 +658,12 @@ function applyCurrentWebhookSettings(settings) {
   currentMicrosoftAuthority = settings.microsoftAuthority;
   currentUploadBodyTemplate = settings.uploadBodyTemplate;
   currentActionBodyTemplate = settings.actionBodyTemplate;
+  currentCheckActionBodyTemplate = settings.checkActionBodyTemplate;
+  currentExportActionBodyTemplate = settings.exportActionBodyTemplate;
+  currentExportAndClearActionBodyTemplate = settings.exportAndClearActionBodyTemplate;
+  currentClearHistoryActionBodyTemplate = settings.clearHistoryActionBodyTemplate;
+  currentEditActionBodyTemplate = settings.editActionBodyTemplate;
+  currentDeleteActionBodyTemplate = settings.deleteActionBodyTemplate;
   currentCommandBodyTemplate = settings.commandBodyTemplate;
   currentLoginBodyTemplate = settings.loginBodyTemplate;
 }
@@ -608,6 +688,30 @@ async function loadWebhookSettings() {
           parsedFile?.microsoftAuthority || defaultMicrosoftAuthority || currentMicrosoftAuthority,
         uploadBodyTemplate: parsedFile?.uploadBodyTemplate || currentUploadBodyTemplate,
         actionBodyTemplate: parsedFile?.actionBodyTemplate || currentActionBodyTemplate,
+        checkActionBodyTemplate:
+          parsedFile?.checkActionBodyTemplate ||
+          parsedFile?.actionBodyTemplate ||
+          currentCheckActionBodyTemplate,
+        exportActionBodyTemplate:
+          parsedFile?.exportActionBodyTemplate ||
+          parsedFile?.actionBodyTemplate ||
+          currentExportActionBodyTemplate,
+        exportAndClearActionBodyTemplate:
+          parsedFile?.exportAndClearActionBodyTemplate ||
+          parsedFile?.actionBodyTemplate ||
+          currentExportAndClearActionBodyTemplate,
+        clearHistoryActionBodyTemplate:
+          parsedFile?.clearHistoryActionBodyTemplate ||
+          parsedFile?.actionBodyTemplate ||
+          currentClearHistoryActionBodyTemplate,
+        editActionBodyTemplate:
+          parsedFile?.editActionBodyTemplate ||
+          parsedFile?.actionBodyTemplate ||
+          currentEditActionBodyTemplate,
+        deleteActionBodyTemplate:
+          parsedFile?.deleteActionBodyTemplate ||
+          parsedFile?.actionBodyTemplate ||
+          currentDeleteActionBodyTemplate,
         commandBodyTemplate: parsedFile?.commandBodyTemplate || currentCommandBodyTemplate,
         loginBodyTemplate: parsedFile?.loginBodyTemplate || currentLoginBodyTemplate
       })
@@ -625,6 +729,12 @@ async function loadWebhookSettings() {
         microsoftAuthority: currentMicrosoftAuthority,
         uploadBodyTemplate: currentUploadBodyTemplate,
         actionBodyTemplate: currentActionBodyTemplate,
+        checkActionBodyTemplate: currentCheckActionBodyTemplate,
+        exportActionBodyTemplate: currentExportActionBodyTemplate,
+        exportAndClearActionBodyTemplate: currentExportAndClearActionBodyTemplate,
+        clearHistoryActionBodyTemplate: currentClearHistoryActionBodyTemplate,
+        editActionBodyTemplate: currentEditActionBodyTemplate,
+        deleteActionBodyTemplate: currentDeleteActionBodyTemplate,
         commandBodyTemplate: currentCommandBodyTemplate,
         loginBodyTemplate: currentLoginBodyTemplate
       });
@@ -826,6 +936,20 @@ function resolveTemplateNode(node, context) {
 function buildPayloadFromTemplate(templateText, context) {
   const parsed = JSON.parse(templateText);
   return resolveTemplateNode(parsed, context);
+}
+
+function getActionBodyTemplateForAction(action) {
+  const normalizedAction = typeof action === "string" ? action.trim().toLowerCase() : "";
+  const templateByAction = {
+    check: currentCheckActionBodyTemplate,
+    export: currentExportActionBodyTemplate,
+    exportandclear: currentExportAndClearActionBodyTemplate,
+    clearhistory: currentClearHistoryActionBodyTemplate,
+    edit: currentEditActionBodyTemplate,
+    delete: currentDeleteActionBodyTemplate
+  };
+
+  return templateByAction[normalizedAction] || currentActionBodyTemplate || defaultActionBodyTemplate;
 }
 
 function ensurePayloadAliases(payload, aliases) {
@@ -1736,7 +1860,7 @@ app.post("/doc-action", async (req, res) => {
   }
 
   try {
-    const actionPayload = buildPayloadFromTemplate(currentActionBodyTemplate, {
+    const actionPayload = buildPayloadFromTemplate(getActionBodyTemplateForAction(action), {
       action,
       email,
       editedData,

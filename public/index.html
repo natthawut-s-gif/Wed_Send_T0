@@ -377,10 +377,65 @@
           </label>
 
           <label class="field">
-            <span id="settingsActionBodyTemplateLabel"></span>
+            <span id="settingsCheckActionBodyTemplateLabel"></span>
             <textarea
-              id="settingsActionBodyTemplate"
-              name="actionBodyTemplate"
+              id="settingsCheckActionBodyTemplate"
+              name="checkActionBodyTemplate"
+              rows="8"
+              class="code-textarea"
+              spellcheck="false"
+            ></textarea>
+          </label>
+
+          <label class="field">
+            <span id="settingsExportActionBodyTemplateLabel"></span>
+            <textarea
+              id="settingsExportActionBodyTemplate"
+              name="exportActionBodyTemplate"
+              rows="8"
+              class="code-textarea"
+              spellcheck="false"
+            ></textarea>
+          </label>
+
+          <label class="field">
+            <span id="settingsExportAndClearActionBodyTemplateLabel"></span>
+            <textarea
+              id="settingsExportAndClearActionBodyTemplate"
+              name="exportAndClearActionBodyTemplate"
+              rows="8"
+              class="code-textarea"
+              spellcheck="false"
+            ></textarea>
+          </label>
+
+          <label class="field">
+            <span id="settingsClearHistoryActionBodyTemplateLabel"></span>
+            <textarea
+              id="settingsClearHistoryActionBodyTemplate"
+              name="clearHistoryActionBodyTemplate"
+              rows="8"
+              class="code-textarea"
+              spellcheck="false"
+            ></textarea>
+          </label>
+
+          <label class="field">
+            <span id="settingsEditActionBodyTemplateLabel"></span>
+            <textarea
+              id="settingsEditActionBodyTemplate"
+              name="editActionBodyTemplate"
+              rows="8"
+              class="code-textarea"
+              spellcheck="false"
+            ></textarea>
+          </label>
+
+          <label class="field">
+            <span id="settingsDeleteActionBodyTemplateLabel"></span>
+            <textarea
+              id="settingsDeleteActionBodyTemplate"
+              name="deleteActionBodyTemplate"
               rows="8"
               class="code-textarea"
               spellcheck="false"
@@ -667,8 +722,16 @@
           languageEnglish: "English",
           languageHelper: "สลับภาษาได้ทันที และระบบจะจำค่าที่เลือกไว้ใน browser นี้",
           settingsWebhookInputLabel: "Webhook URL",
+          settingsUploadBodyTemplateLabel: "Body สำหรับ Upload",
           settingsActionWebhookInputLabel: "Action Webhook URL",
+          settingsCheckActionBodyTemplateLabel: "Body ปุ่มตรวจสอบ",
+          settingsExportActionBodyTemplateLabel: "Body ปุ่ม Export",
+          settingsExportAndClearActionBodyTemplateLabel: "Body ปุ่ม Export and Clear",
+          settingsClearHistoryActionBodyTemplateLabel: "Body ปุ่ม Clear History",
+          settingsEditActionBodyTemplateLabel: "Body สำหรับ Edit",
+          settingsDeleteActionBodyTemplateLabel: "Body สำหรับ Delete Row",
           settingsCommandWebhookInputLabel: "Command Webhook URL",
+          settingsCommandBodyTemplateLabel: "Body สำหรับ Command Webhook",
           settingsWebhookPlaceholder: "https://your-domain/webhook/upload",
           settingsActionWebhookPlaceholder: "https://your-domain/webhook/action",
           settingsCommandWebhookPlaceholder: "https://your-domain/webhook/command",
@@ -842,7 +905,12 @@
           settingsWebhookInputLabel: "Webhook URL",
           settingsUploadBodyTemplateLabel: "Upload Webhook Body Template",
           settingsActionWebhookInputLabel: "Action Webhook URL",
-          settingsActionBodyTemplateLabel: "Action Webhook Body Template",
+          settingsCheckActionBodyTemplateLabel: "Check Button Body Template",
+          settingsExportActionBodyTemplateLabel: "Export Button Body Template",
+          settingsExportAndClearActionBodyTemplateLabel: "Export and Clear Button Body Template",
+          settingsClearHistoryActionBodyTemplateLabel: "Clear History Button Body Template",
+          settingsEditActionBodyTemplateLabel: "Edit Action Body Template",
+          settingsDeleteActionBodyTemplateLabel: "Delete Row Action Body Template",
           settingsCommandWebhookInputLabel: "Command Webhook URL",
           settingsCommandBodyTemplateLabel: "Command Webhook Body Template",
           settingsWebhookPlaceholder: "https://your-domain/webhook/upload",
@@ -852,7 +920,7 @@
           bodyTemplatesKicker: "Body templates",
           bodyTemplatesTitle: "Edit webhook body templates",
           bodyTemplatesDescription:
-            "Use this popup to edit the JSON body for upload, action, command, and login webhooks.",
+            "Use this popup to edit the JSON body for upload and each button action, plus command and login webhooks.",
           saveBodyTemplatesButton: "Save Body Templates",
           saveSettingsButton: "Save Settings",
           statusChecking: "Checking",
@@ -1111,7 +1179,24 @@
       const settingsWebhookUrl = document.getElementById("settingsWebhookUrl");
       const settingsUploadBodyTemplate = document.getElementById("settingsUploadBodyTemplate");
       const settingsActionWebhookUrl = document.getElementById("settingsActionWebhookUrl");
-      const settingsActionBodyTemplate = document.getElementById("settingsActionBodyTemplate");
+      const settingsCheckActionBodyTemplate = document.getElementById(
+        "settingsCheckActionBodyTemplate"
+      );
+      const settingsExportActionBodyTemplate = document.getElementById(
+        "settingsExportActionBodyTemplate"
+      );
+      const settingsExportAndClearActionBodyTemplate = document.getElementById(
+        "settingsExportAndClearActionBodyTemplate"
+      );
+      const settingsClearHistoryActionBodyTemplate = document.getElementById(
+        "settingsClearHistoryActionBodyTemplate"
+      );
+      const settingsEditActionBodyTemplate = document.getElementById(
+        "settingsEditActionBodyTemplate"
+      );
+      const settingsDeleteActionBodyTemplate = document.getElementById(
+        "settingsDeleteActionBodyTemplate"
+      );
       const settingsCommandWebhookUrl = document.getElementById("settingsCommandWebhookUrl");
       const settingsCommandBodyTemplate = document.getElementById("settingsCommandBodyTemplate");
       const settingsMessage = document.getElementById("settingsMessage");
@@ -1412,7 +1497,21 @@
         setText("settingsUploadBodyTemplateLabel", t("settingsUploadBodyTemplateLabel"));
         setText("settingsActionWebhookInputLabel", t("settingsActionWebhookInputLabel"));
         settingsActionWebhookUrl.placeholder = t("settingsActionWebhookPlaceholder");
-        setText("settingsActionBodyTemplateLabel", t("settingsActionBodyTemplateLabel"));
+        setText("settingsCheckActionBodyTemplateLabel", t("settingsCheckActionBodyTemplateLabel"));
+        setText("settingsExportActionBodyTemplateLabel", t("settingsExportActionBodyTemplateLabel"));
+        setText(
+          "settingsExportAndClearActionBodyTemplateLabel",
+          t("settingsExportAndClearActionBodyTemplateLabel")
+        );
+        setText(
+          "settingsClearHistoryActionBodyTemplateLabel",
+          t("settingsClearHistoryActionBodyTemplateLabel")
+        );
+        setText("settingsEditActionBodyTemplateLabel", t("settingsEditActionBodyTemplateLabel"));
+        setText(
+          "settingsDeleteActionBodyTemplateLabel",
+          t("settingsDeleteActionBodyTemplateLabel")
+        );
         setText("settingsCommandWebhookInputLabel", t("settingsCommandWebhookInputLabel"));
         settingsCommandWebhookUrl.placeholder = t("settingsCommandWebhookPlaceholder");
         setText("settingsCommandBodyTemplateLabel", t("settingsCommandBodyTemplateLabel"));
@@ -2350,7 +2449,15 @@
           webhookUrl: settingsWebhookUrl.value.trim(),
           uploadBodyTemplate: settingsUploadBodyTemplate.value,
           actionWebhookUrl: settingsActionWebhookUrl.value.trim(),
-          actionBodyTemplate: settingsActionBodyTemplate.value,
+          actionBodyTemplate:
+            (currentSettingsPayload && currentSettingsPayload.actionBodyTemplate) ||
+            settingsCheckActionBodyTemplate.value,
+          checkActionBodyTemplate: settingsCheckActionBodyTemplate.value,
+          exportActionBodyTemplate: settingsExportActionBodyTemplate.value,
+          exportAndClearActionBodyTemplate: settingsExportAndClearActionBodyTemplate.value,
+          clearHistoryActionBodyTemplate: settingsClearHistoryActionBodyTemplate.value,
+          editActionBodyTemplate: settingsEditActionBodyTemplate.value,
+          deleteActionBodyTemplate: settingsDeleteActionBodyTemplate.value,
           commandWebhookUrl: settingsCommandWebhookUrl.value.trim(),
           commandBodyTemplate: settingsCommandBodyTemplate.value,
           loginWebhookUrl: settingsLoginWebhookUrl.value.trim(),
@@ -2377,7 +2484,18 @@
           settingsWebhookUrl.value = result.webhookUrl || "";
           settingsUploadBodyTemplate.value = result.uploadBodyTemplate || "";
           settingsActionWebhookUrl.value = result.actionWebhookUrl || "";
-          settingsActionBodyTemplate.value = result.actionBodyTemplate || "";
+          settingsCheckActionBodyTemplate.value =
+            result.checkActionBodyTemplate || result.actionBodyTemplate || "";
+          settingsExportActionBodyTemplate.value =
+            result.exportActionBodyTemplate || result.actionBodyTemplate || "";
+          settingsExportAndClearActionBodyTemplate.value =
+            result.exportAndClearActionBodyTemplate || result.actionBodyTemplate || "";
+          settingsClearHistoryActionBodyTemplate.value =
+            result.clearHistoryActionBodyTemplate || result.actionBodyTemplate || "";
+          settingsEditActionBodyTemplate.value =
+            result.editActionBodyTemplate || result.actionBodyTemplate || "";
+          settingsDeleteActionBodyTemplate.value =
+            result.deleteActionBodyTemplate || result.actionBodyTemplate || "";
           settingsCommandWebhookUrl.value = result.commandWebhookUrl || "";
           settingsCommandBodyTemplate.value = result.commandBodyTemplate || "";
           settingsLoginWebhookUrl.value = result.loginWebhookUrl || "";
