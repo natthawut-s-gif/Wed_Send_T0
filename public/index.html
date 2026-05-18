@@ -291,30 +291,8 @@
           </label>
 
           <label class="field" data-admin-only="true">
-            <span id="settingsUploadBodyTemplateLabel"></span>
-            <textarea
-              id="settingsUploadBodyTemplate"
-              name="uploadBodyTemplate"
-              rows="8"
-              class="code-textarea"
-              spellcheck="false"
-            ></textarea>
-          </label>
-
-          <label class="field" data-admin-only="true">
             <span id="settingsActionWebhookInputLabel"></span>
             <input id="settingsActionWebhookUrl" type="url" name="actionWebhookUrl" required />
-          </label>
-
-          <label class="field" data-admin-only="true">
-            <span id="settingsActionBodyTemplateLabel"></span>
-            <textarea
-              id="settingsActionBodyTemplate"
-              name="actionBodyTemplate"
-              rows="8"
-              class="code-textarea"
-              spellcheck="false"
-            ></textarea>
           </label>
 
           <label class="field" data-admin-only="true">
@@ -323,30 +301,8 @@
           </label>
 
           <label class="field" data-admin-only="true">
-            <span id="settingsCommandBodyTemplateLabel"></span>
-            <textarea
-              id="settingsCommandBodyTemplate"
-              name="commandBodyTemplate"
-              rows="8"
-              class="code-textarea"
-              spellcheck="false"
-            ></textarea>
-          </label>
-
-          <label class="field" data-admin-only="true">
             <span id="settingsLoginWebhookInputLabel"></span>
             <input id="settingsLoginWebhookUrl" type="url" name="loginWebhookUrl" />
-          </label>
-
-          <label class="field" data-admin-only="true">
-            <span id="settingsLoginBodyTemplateLabel"></span>
-            <textarea
-              id="settingsLoginBodyTemplate"
-              name="loginBodyTemplate"
-              rows="8"
-              class="code-textarea"
-              spellcheck="false"
-            ></textarea>
           </label>
 
           <label class="field" data-admin-only="true">
@@ -369,6 +325,12 @@
           <div class="modal-actions">
             <button id="logoutButton" type="button" class="secondary-button"></button>
             <button
+              id="openBodyTemplatesButton"
+              type="button"
+              class="secondary-button"
+              data-admin-only="true"
+            ></button>
+            <button
               id="openAccountManagementButton"
               type="button"
               class="secondary-button secondary-button-dark"
@@ -377,6 +339,77 @@
             <button id="saveSettingsButton" type="submit" data-admin-only="true"></button>
           </div>
         </form>
+      </section>
+    </div>
+
+    <div id="bodyTemplatesModal" class="modal-backdrop hidden">
+      <section
+        class="modal-card body-templates-modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bodyTemplatesTitle"
+      >
+        <div class="modal-head">
+          <div>
+            <div id="bodyTemplatesKicker" class="status-kicker"></div>
+            <h2 id="bodyTemplatesTitle"></h2>
+          </div>
+          <button id="closeBodyTemplatesButton" type="button" class="close-button"></button>
+        </div>
+
+        <div class="modal-form">
+          <div id="bodyTemplatesDescription" class="theme-helper"></div>
+
+          <label class="field">
+            <span id="settingsUploadBodyTemplateLabel"></span>
+            <textarea
+              id="settingsUploadBodyTemplate"
+              name="uploadBodyTemplate"
+              rows="8"
+              class="code-textarea"
+              spellcheck="false"
+            ></textarea>
+          </label>
+
+          <label class="field">
+            <span id="settingsActionBodyTemplateLabel"></span>
+            <textarea
+              id="settingsActionBodyTemplate"
+              name="actionBodyTemplate"
+              rows="8"
+              class="code-textarea"
+              spellcheck="false"
+            ></textarea>
+          </label>
+
+          <label class="field">
+            <span id="settingsCommandBodyTemplateLabel"></span>
+            <textarea
+              id="settingsCommandBodyTemplate"
+              name="commandBodyTemplate"
+              rows="8"
+              class="code-textarea"
+              spellcheck="false"
+            ></textarea>
+          </label>
+
+          <label class="field">
+            <span id="settingsLoginBodyTemplateLabel"></span>
+            <textarea
+              id="settingsLoginBodyTemplate"
+              name="loginBodyTemplate"
+              rows="8"
+              class="code-textarea"
+              spellcheck="false"
+            ></textarea>
+          </label>
+
+          <div id="bodyTemplatesMessage" class="settings-message idle"></div>
+
+          <div class="modal-actions">
+            <button id="saveBodyTemplatesButton" type="button" class="secondary-button secondary-button-dark"></button>
+          </div>
+        </div>
       </section>
     </div>
 
@@ -634,6 +667,12 @@
           settingsWebhookPlaceholder: "https://your-domain/webhook/upload",
           settingsActionWebhookPlaceholder: "https://your-domain/webhook/action",
           settingsCommandWebhookPlaceholder: "https://your-domain/webhook/command",
+          openBodyTemplatesButton: "จัดการ Body Templates",
+          bodyTemplatesKicker: "Body templates",
+          bodyTemplatesTitle: "แก้ไข body ที่ส่งไปแต่ละ webhook",
+          bodyTemplatesDescription:
+            "ปรับ JSON body สำหรับ upload, action, command และ login ได้จาก popup นี้",
+          saveBodyTemplatesButton: "บันทึก Body Templates",
           saveSettingsButton: "บันทึกการตั้งค่า",
           statusChecking: "กำลังตรวจสอบ",
           statusConfigured: "พร้อมใช้งาน",
@@ -647,6 +686,9 @@
           settingsSaved: "บันทึกการตั้งค่าเรียบร้อยแล้ว",
           failedLoadSettings: "โหลดการตั้งค่า webhook ไม่สำเร็จ",
           failedSaveSettings: "บันทึกการตั้งค่าไม่สำเร็จ",
+          savingBodyTemplates: "กำลังบันทึก body templates...",
+          bodyTemplatesSaved: "บันทึก body templates เรียบร้อยแล้ว",
+          failedSaveBodyTemplates: "บันทึก body templates ไม่สำเร็จ",
           actionLabel: "Action",
           emailMetaLabel: "Email",
           webhookMetaLabel: "Webhook",
@@ -801,6 +843,12 @@
           settingsWebhookPlaceholder: "https://your-domain/webhook/upload",
           settingsActionWebhookPlaceholder: "https://your-domain/webhook/action",
           settingsCommandWebhookPlaceholder: "https://your-domain/webhook/command",
+          openBodyTemplatesButton: "Body Templates",
+          bodyTemplatesKicker: "Body templates",
+          bodyTemplatesTitle: "Edit webhook body templates",
+          bodyTemplatesDescription:
+            "Use this popup to edit the JSON body for upload, action, command, and login webhooks.",
+          saveBodyTemplatesButton: "Save Body Templates",
           saveSettingsButton: "Save Settings",
           statusChecking: "Checking",
           statusConfigured: "Ready",
@@ -814,6 +862,9 @@
           settingsSaved: "Settings saved successfully.",
           failedLoadSettings: "Failed to load webhook settings",
           failedSaveSettings: "Failed to save settings",
+          savingBodyTemplates: "Saving body templates...",
+          bodyTemplatesSaved: "Body templates saved successfully.",
+          failedSaveBodyTemplates: "Failed to save body templates",
           actionLabel: "Action",
           emailMetaLabel: "Email",
           webhookMetaLabel: "Webhook",
@@ -1043,6 +1094,11 @@
       const exportAndClearConfirmButton = document.getElementById("exportAndClearConfirmButton");
       const settingsModal = document.getElementById("settingsModal");
       const closeSettingsButton = document.getElementById("closeSettingsButton");
+      const bodyTemplatesModal = document.getElementById("bodyTemplatesModal");
+      const closeBodyTemplatesButton = document.getElementById("closeBodyTemplatesButton");
+      const openBodyTemplatesButton = document.getElementById("openBodyTemplatesButton");
+      const saveBodyTemplatesButton = document.getElementById("saveBodyTemplatesButton");
+      const bodyTemplatesMessage = document.getElementById("bodyTemplatesMessage");
       const accountManagementModal = document.getElementById("accountManagementModal");
       const closeAccountManagementButton = document.getElementById("closeAccountManagementButton");
       const openAccountManagementButton = document.getElementById("openAccountManagementButton");
@@ -1130,6 +1186,10 @@
       let settingsMessageState = {
         state: "idle",
         key: "settingsLoadingCurrent",
+        raw: null
+      };
+      let bodyTemplatesMessageState = {
+        state: "idle",
         raw: null
       };
       let accountManagementMessageState = {
@@ -1306,6 +1366,12 @@
         setText("settingsKicker", t("settingsKicker"));
         setText("settingsTitle", t("settingsTitle"));
         closeSettingsButton.textContent = t("closeButton");
+        setText("bodyTemplatesKicker", t("bodyTemplatesKicker"));
+        setText("bodyTemplatesTitle", t("bodyTemplatesTitle"));
+        setText("bodyTemplatesDescription", t("bodyTemplatesDescription"));
+        closeBodyTemplatesButton.textContent = t("closeButton");
+        openBodyTemplatesButton.textContent = t("openBodyTemplatesButton");
+        saveBodyTemplatesButton.textContent = t("saveBodyTemplatesButton");
         openAccountManagementButton.textContent = t("accountManagementOpenButton");
         setText("accountManagementKicker", t("accountManagementKicker"));
         closeAccountManagementButton.textContent = t("closeButton");
@@ -1388,6 +1454,7 @@
         renderAccountManagementMessage();
         renderAccountUserList();
         renderAccountManagementState();
+        renderBodyTemplatesMessage();
         renderGoogleLoginButton();
         renderRoleAccessState();
         renderChatMessage();
@@ -1477,6 +1544,17 @@
       function renderSettingsMessage() {
         settingsMessage.className = `settings-message ${settingsMessageState.state}`;
         settingsMessage.textContent = settingsMessageState.raw || t(settingsMessageState.key);
+      }
+
+      function setBodyTemplatesMessageState({ state = "idle", raw = null }) {
+        bodyTemplatesMessageState = { state, raw };
+        renderBodyTemplatesMessage();
+      }
+
+      function renderBodyTemplatesMessage() {
+        bodyTemplatesMessage.className = `settings-message ${bodyTemplatesMessageState.state}`;
+        bodyTemplatesMessage.textContent =
+          bodyTemplatesMessageState.raw || t("bodyTemplatesDescription");
       }
 
       function setAccountManagementMessageState({ state = "idle", key = null, raw = null }) {
@@ -2255,10 +2333,27 @@
       function syncModalOpenState() {
         const isAnyModalOpen =
           !settingsModal.classList.contains("hidden") ||
+          !bodyTemplatesModal.classList.contains("hidden") ||
           !accountManagementModal.classList.contains("hidden") ||
           !chatModal.classList.contains("hidden") ||
           !exportPreviewModal.classList.contains("hidden");
         document.body.classList.toggle("modal-open", isAnyModalOpen);
+      }
+
+      function collectSettingsPayload() {
+        return {
+          webhookUrl: settingsWebhookUrl.value.trim(),
+          uploadBodyTemplate: settingsUploadBodyTemplate.value,
+          actionWebhookUrl: settingsActionWebhookUrl.value.trim(),
+          actionBodyTemplate: settingsActionBodyTemplate.value,
+          commandWebhookUrl: settingsCommandWebhookUrl.value.trim(),
+          commandBodyTemplate: settingsCommandBodyTemplate.value,
+          loginWebhookUrl: settingsLoginWebhookUrl.value.trim(),
+          loginBodyTemplate: settingsLoginBodyTemplate.value,
+          googleClientId: settingsGoogleClientId.value.trim(),
+          microsoftClientId: settingsMicrosoftClientId.value.trim(),
+          microsoftAuthority: settingsMicrosoftAuthority.value.trim()
+        };
       }
 
       async function loadSettings() {
@@ -2289,6 +2384,7 @@
           renderSettingsStatus();
           renderGoogleLoginButton();
           setSettingsMessageState({ state: "idle", key: "settingsReady" });
+          setBodyTemplatesMessageState({ state: "idle", raw: null });
         } catch (error) {
           setSettingsMessageState({ state: "error", raw: error.message });
         }
@@ -2397,6 +2493,21 @@
 
       function closeSettingsModal() {
         settingsModal.classList.add("hidden");
+        syncModalOpenState();
+      }
+
+      function openBodyTemplatesModal() {
+        if (!loginState.isAuthenticated || !isAdminUser()) {
+          return;
+        }
+        bodyTemplatesModal.classList.remove("hidden");
+        setBodyTemplatesMessageState({ state: "idle", raw: null });
+        syncModalOpenState();
+        settingsUploadBodyTemplate.focus();
+      }
+
+      function closeBodyTemplatesModal() {
+        bodyTemplatesModal.classList.add("hidden");
         syncModalOpenState();
       }
 
@@ -4301,12 +4412,20 @@
         openAccountManagementModal();
       });
 
+      openBodyTemplatesButton.addEventListener("click", () => {
+        openBodyTemplatesModal();
+      });
+
       closeChatButton.addEventListener("click", () => {
         closeChatModal();
       });
 
       closeSettingsButton.addEventListener("click", () => {
         closeSettingsModal();
+      });
+
+      closeBodyTemplatesButton.addEventListener("click", () => {
+        closeBodyTemplatesModal();
       });
 
       closeAccountManagementButton.addEventListener("click", () => {
@@ -4387,6 +4506,12 @@
         }
       });
 
+      bodyTemplatesModal.addEventListener("click", (event) => {
+        if (event.target === bodyTemplatesModal) {
+          closeBodyTemplatesModal();
+        }
+      });
+
       accountUserListContainer.addEventListener("input", (event) => {
         const input = event.target.closest("[data-user-row-index]");
         if (!input) {
@@ -4437,6 +4562,10 @@
           closeAccountManagementModal();
         }
 
+        if (event.key === "Escape" && !bodyTemplatesModal.classList.contains("hidden")) {
+          closeBodyTemplatesModal();
+        }
+
         if (event.key === "Escape" && !settingsModal.classList.contains("hidden")) {
           closeSettingsModal();
         }
@@ -4480,19 +4609,7 @@
             headers: {
               "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-              webhookUrl: settingsWebhookUrl.value.trim(),
-              uploadBodyTemplate: settingsUploadBodyTemplate.value,
-              actionWebhookUrl: settingsActionWebhookUrl.value.trim(),
-              actionBodyTemplate: settingsActionBodyTemplate.value,
-              commandWebhookUrl: settingsCommandWebhookUrl.value.trim(),
-              commandBodyTemplate: settingsCommandBodyTemplate.value,
-              loginWebhookUrl: settingsLoginWebhookUrl.value.trim(),
-              loginBodyTemplate: settingsLoginBodyTemplate.value,
-              googleClientId: settingsGoogleClientId.value.trim(),
-              microsoftClientId: settingsMicrosoftClientId.value.trim(),
-              microsoftAuthority: settingsMicrosoftAuthority.value.trim()
-            })
+            body: JSON.stringify(collectSettingsPayload())
           });
 
           const result = await response.json();
@@ -4509,6 +4626,39 @@
           setSettingsMessageState({ state: "error", raw: error.message });
         } finally {
           saveSettingsButton.disabled = false;
+        }
+      });
+
+      saveBodyTemplatesButton.addEventListener("click", async () => {
+        saveBodyTemplatesButton.disabled = true;
+        setBodyTemplatesMessageState({ state: "loading", raw: t("savingBodyTemplates") });
+
+        try {
+          const response = await fetch("/settings/webhooks", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(collectSettingsPayload())
+          });
+          const result = await response.json();
+
+          if (!response.ok || !result.ok) {
+            throw new Error(result.message || t("failedSaveBodyTemplates"));
+          }
+
+          currentSettingsPayload = result;
+          renderSettingsStatus();
+          renderGoogleLoginButton();
+          setBodyTemplatesMessageState({ state: "success", raw: t("bodyTemplatesSaved") });
+          setSettingsMessageState({ state: "success", key: "settingsSaved" });
+        } catch (error) {
+          setBodyTemplatesMessageState({
+            state: "error",
+            raw: error.message || t("failedSaveBodyTemplates")
+          });
+        } finally {
+          saveBodyTemplatesButton.disabled = false;
         }
       });
 

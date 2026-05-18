@@ -1424,6 +1424,11 @@ button:disabled {
   max-height: calc(100vh - 24px);
 }
 
+.body-templates-modal-card {
+  width: min(100%, 920px);
+  max-height: calc(100vh - 24px);
+}
+
 .modal-head {
   display: flex;
   align-items: flex-start;
