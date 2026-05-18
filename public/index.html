@@ -1352,6 +1352,68 @@
         }
       }
 
+      function getButtonIconSvg(iconKey) {
+        const icons = {
+          chat:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10h10"/><path d="M7 14h6"/><path d="M5 19.5V6.8A2.8 2.8 0 0 1 7.8 4h8.4A2.8 2.8 0 0 1 19 6.8v6.4A2.8 2.8 0 0 1 16.2 16H9l-4 3.5Z"/></svg>',
+          settings:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.7A3.3 3.3 0 1 0 12 15.3A3.3 3.3 0 1 0 12 8.7Z"/><path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a1.6 1.6 0 0 1 0 2.3l-.2.2a1.6 1.6 0 0 1-2.3 0l-.1-.1a1 1 0 0 0-1.1-.2a1 1 0 0 0-.6.9V20a1.6 1.6 0 0 1-1.6 1.6h-.3A1.6 1.6 0 0 1 12 20v-.2a1 1 0 0 0-.6-.9a1 1 0 0 0-1.1.2l-.1.1a1.6 1.6 0 0 1-2.3 0l-.2-.2a1.6 1.6 0 0 1 0-2.3l.1-.1a1 1 0 0 0 .2-1.1a1 1 0 0 0-.9-.6H6a1.6 1.6 0 0 1-1.6-1.6v-.3A1.6 1.6 0 0 1 6 11h.2a1 1 0 0 0 .9-.6a1 1 0 0 0-.2-1.1l-.1-.1a1.6 1.6 0 0 1 0-2.3l.2-.2a1.6 1.6 0 0 1 2.3 0l.1.1a1 1 0 0 0 1.1.2h.1a1 1 0 0 0 .6-.9V4a1.6 1.6 0 0 1 1.6-1.6h.3A1.6 1.6 0 0 1 15.4 4v.2a1 1 0 0 0 .6.9a1 1 0 0 0 1.1-.2l.1-.1a1.6 1.6 0 0 1 2.3 0l.2.2a1.6 1.6 0 0 1 0 2.3l-.1.1a1 1 0 0 0-.2 1.1v.1a1 1 0 0 0 .9.6H20a1.6 1.6 0 0 1 1.6 1.6v.3A1.6 1.6 0 0 1 20 15h-.2a1 1 0 0 0-.4 0Z"/></svg>',
+          login:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 8V6.5A3.5 3.5 0 0 0 8 6.5V8"/><rect x="5" y="8" width="14" height="11" rx="2.5"/><path d="M12 12v3"/></svg>',
+          upload:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V5"/><path d="m8 9 4-4 4 4"/><path d="M4 16.5v1A2.5 2.5 0 0 0 6.5 20h11A2.5 2.5 0 0 0 20 17.5v-1"/></svg>',
+          trash:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M9.5 3.5h5"/><path d="M7 7l1 12a2 2 0 0 0 2 1.8h4a2 2 0 0 0 2-1.8L17 7"/><path d="M10 11v5"/><path d="M14 11v5"/></svg>',
+          check:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m20 6-9 9-4-4"/><path d="M4 12a8 8 0 1 0 4-6.9"/></svg>',
+          export:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10"/><path d="m8 10 4 4 4-4"/><path d="M4 18.5v.5A1.5 1.5 0 0 0 5.5 20h13A1.5 1.5 0 0 0 20 18.5V18"/></svg>',
+          close:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18"/><path d="M18 6 6 18"/></svg>',
+          code:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18-6-6 6-6"/><path d="m15 6 6 6-6 6"/><path d="M14 4 10 20"/></svg>',
+          users:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 19a4 4 0 0 0-8 0"/><path d="M12 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19 19a3 3 0 0 0-2.2-2.9"/><path d="M17.5 10.5a2.5 2.5 0 1 0 0-5"/></svg>',
+          save:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M9 4v5h6V4"/><path d="M9 20v-6h6v6"/></svg>',
+          sun:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5"/><path d="M12 19.5V22"/><path d="m4.9 4.9 1.8 1.8"/><path d="m17.3 17.3 1.8 1.8"/><path d="M2 12h2.5"/><path d="M19.5 12H22"/><path d="m4.9 19.1 1.8-1.8"/><path d="m17.3 6.7 1.8-1.8"/></svg>',
+          moon:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4A7 7 0 0 0 20 14.5Z"/></svg>',
+          globe:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18"/><path d="M12 3a14 14 0 0 0 0 18"/></svg>',
+          refresh:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0 2 5.3"/><path d="M20 4v7h-7"/></svg>',
+          microsoft:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" fill="#f25022" stroke="none"></rect><rect x="13" y="2" width="9" height="9" fill="#7fba00" stroke="none"></rect><rect x="2" y="13" width="9" height="9" fill="#00a4ef" stroke="none"></rect><rect x="13" y="13" width="9" height="9" fill="#ffb900" stroke="none"></rect></svg>',
+          send:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3 10 14"/><path d="m21 3-7 18-4-7-7-4Z"/></svg>',
+          edit:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.5-1 9-9a2.1 2.1 0 1 0-3-3l-9 9L4 20Z"/><path d="m13.5 6.5 4 4"/></svg>',
+          cancel:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h9a7 7 0 1 1 0 14h-2"/></svg>',
+          logout:
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17v2a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v2"/><path d="M15 12H3"/><path d="m6 9-3 3 3 3"/></svg>'
+        };
+        return icons[iconKey] || "";
+      }
+
+      function setButtonContent(target, label, iconKey) {
+        const element = typeof target === "string" ? document.getElementById(target) : target;
+        if (!element) {
+          return;
+        }
+        const iconSvg = getButtonIconSvg(iconKey);
+        if (!iconSvg) {
+          element.textContent = label;
+          return;
+        }
+        element.innerHTML = `
+          <span class="button-icon" aria-hidden="true">${iconSvg}</span>
+          <span class="button-label">${escapeHtml(label)}</span>
+        `;
+      }
+
       function applyTheme(theme) {
         currentTheme = theme === "dark" ? "dark" : "light";
         document.documentElement.setAttribute("data-theme", currentTheme);
@@ -1410,8 +1472,8 @@
       function renderStaticText() {
         document.title = t("documentTitle");
         setText("eyebrowText", t("eyebrow"));
-        chatButton.textContent = t("chatButton");
-        settingsButton.textContent = t("settingsButton");
+        setButtonContent(chatButton, t("chatButton"), "chat");
+        setButtonContent(settingsButton, t("settingsButton"), "settings");
         setText("introText", t("intro"));
         setText("senderNameLabel", t("senderNameLabel"));
         senderNameInput.placeholder = t("senderNamePlaceholder");
@@ -1421,27 +1483,17 @@
         setText("loginIntro", t("loginIntro"));
         setText("loginEmailLabel", t("loginEmailLabel"));
         setText("loginPasswordLabel", t("loginPasswordLabel"));
-        manualLoginButton.textContent = t("loginButton");
+        setButtonContent(manualLoginButton, t("loginButton"), "login");
         setText("loginDividerText", t("loginDivider"));
-        microsoftLoginButton.innerHTML = `
-          <span class="provider-button-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" role="img">
-              <rect x="2" y="2" width="9" height="9" fill="#f25022"></rect>
-              <rect x="13" y="2" width="9" height="9" fill="#7fba00"></rect>
-              <rect x="2" y="13" width="9" height="9" fill="#00a4ef"></rect>
-              <rect x="13" y="13" width="9" height="9" fill="#ffb900"></rect>
-            </svg>
-          </span>
-          <span>${escapeHtml(t("loginWithMicrosoft"))}</span>
-        `;
-        checkButton.textContent = t("checkButton");
-        exportButton.textContent = t("exportButton");
+        setButtonContent(microsoftLoginButton, t("loginWithMicrosoft"), "microsoft");
+        setButtonContent(checkButton, t("checkButton"), "check");
+        setButtonContent(exportButton, t("exportButton"), "export");
         setText("checkResponseTitle", t("checkResponseTitle"));
         setText("noteLabel", t("noteLabel"));
         noteInput.placeholder = t("notePlaceholder");
         setText("dropzoneTitle", t("dropzoneTitle"));
         setText("dropzoneHint", t("dropzoneHint"));
-        submitButton.textContent = t("uploadButton");
+        setButtonContent(submitButton, t("uploadButton"), "upload");
         setText("uploadProgressLabel", t("uploadProgressLabel"));
         setText("statusKicker", t("statusKicker"));
         setText("statusTitle", t("statusTitle"));
@@ -1452,45 +1504,45 @@
         setText("actionPanelTitle", t("actionPanelTitle"));
         setText("historyKicker", t("historyKicker"));
         setText("historyTitle", t("historyTitle"));
-        clearHistoryButton.textContent = t("clearHistoryButton");
+        setButtonContent(clearHistoryButton, t("clearHistoryButton"), "trash");
         setText("settingsKicker", t("settingsKicker"));
         setText("settingsTitle", t("settingsTitle"));
-        closeSettingsButton.textContent = t("closeButton");
+        setButtonContent(closeSettingsButton, t("closeButton"), "close");
         setText("bodyTemplatesKicker", t("bodyTemplatesKicker"));
         setText("bodyTemplatesTitle", t("bodyTemplatesTitle"));
         setText("bodyTemplatesDescription", t("bodyTemplatesDescription"));
-        closeBodyTemplatesButton.textContent = t("closeButton");
-        openBodyTemplatesButton.textContent = t("openBodyTemplatesButton");
-        saveBodyTemplatesButton.textContent = t("saveBodyTemplatesButton");
-        openAccountManagementButton.textContent = t("accountManagementOpenButton");
+        setButtonContent(closeBodyTemplatesButton, t("closeButton"), "close");
+        setButtonContent(openBodyTemplatesButton, t("openBodyTemplatesButton"), "code");
+        setButtonContent(saveBodyTemplatesButton, t("saveBodyTemplatesButton"), "save");
+        setButtonContent(openAccountManagementButton, t("accountManagementOpenButton"), "users");
         setText("accountManagementKicker", t("accountManagementKicker"));
-        closeAccountManagementButton.textContent = t("closeButton");
+        setButtonContent(closeAccountManagementButton, t("closeButton"), "close");
         setText("chatKicker", t("chatKicker"));
         setText("chatTitle", t("chatTitle"));
-        closeChatButton.textContent = t("closeButton");
+        setButtonContent(closeChatButton, t("closeButton"), "close");
         setText("exportModalKicker", t("exportModalKicker"));
         setText("exportModalTitle", t("exportModalTitle"));
         setText("exportModalResponseTitle", t("exportModalResponseTitle"));
-        closeExportModalButton.textContent = t("closeButton");
-        cancelEditExportButton.textContent = t("exportModalCancelEditButton");
-        exportAndClearConfirmButton.textContent = t("exportAndClearConfirmButton");
+        setButtonContent(closeExportModalButton, t("closeButton"), "close");
+        setButtonContent(cancelEditExportButton, t("exportModalCancelEditButton"), "cancel");
+        setButtonContent(exportAndClearConfirmButton, t("exportAndClearConfirmButton"), "export");
         setText("chatNodeLabel", t("chatNodeLabel"));
         setText("chatInputLabel", t("chatInputLabel"));
         chatInput.placeholder = t("chatInputPlaceholder");
         setText("chatResponseTitle", t("chatResponseTitle"));
-        runChatCommandButton.textContent = t("chatRunButton");
+        setButtonContent(runChatCommandButton, t("chatRunButton"), "send");
         setText("settingsWebhookStatusLabel", t("settingsWebhookStatusLabel"));
         setText("settingsActionWebhookStatusLabel", t("settingsActionWebhookStatusLabel"));
         setText("settingsCommandWebhookStatusLabel", t("settingsCommandWebhookStatusLabel"));
         setText("settingsLoginWebhookStatusLabel", t("settingsLoginWebhookStatusLabel"));
         setText("settingsVersionStatusLabel", t("settingsVersionStatusLabel"));
         setText("themeSectionLabel", t("themeLabel"));
-        lightThemeButton.textContent = t("themeLight");
-        darkThemeButton.textContent = t("themeDark");
+        setButtonContent(lightThemeButton, t("themeLight"), "sun");
+        setButtonContent(darkThemeButton, t("themeDark"), "moon");
         setText("themeHelperText", t("themeHelper"));
         setText("languageSectionLabel", t("languageLabel"));
-        thaiLanguageButton.textContent = t("languageThai");
-        englishLanguageButton.textContent = t("languageEnglish");
+        setButtonContent(thaiLanguageButton, t("languageThai"), "globe");
+        setButtonContent(englishLanguageButton, t("languageEnglish"), "globe");
         setText("languageHelperText", t("languageHelper"));
         setText("settingsWebhookInputLabel", t("settingsWebhookInputLabel"));
         settingsWebhookUrl.placeholder = t("settingsWebhookPlaceholder");
@@ -1533,7 +1585,7 @@
         setText("accountManagementTitle", t("registerAccountTitle"));
         setText("accountManagementSectionLabel", t("registerAccountTitle"));
         setText("accountManagementDescription", t("registerAccountDescription"));
-        refreshUserListButton.textContent = t("refreshUserListButton");
+        setButtonContent(refreshUserListButton, t("refreshUserListButton"), "refresh");
         setText("accountUserListTitle", t("accountUserListTitle"));
         setText("accountUserListDescription", t("accountUserListDescription"));
         setText("registerAccountUsernameLabel", t("registerAccountUsernameLabel"));
@@ -1543,7 +1595,7 @@
         registerAccountUsernameInput.placeholder = t("senderNamePlaceholder");
         registerAccountEmailInput.placeholder = t("senderEmailPlaceholder");
         registerAccountPasswordInput.placeholder = t("loginPasswordLabel");
-        registerAccountButton.textContent = t("registerAccountButton");
+        setButtonContent(registerAccountButton, t("registerAccountButton"), "users");
         const userOption = registerAccountRoleSelect.querySelector('option[value="user"]');
         const adminOption = registerAccountRoleSelect.querySelector('option[value="admin"]');
         if (userOption) {
@@ -1552,8 +1604,8 @@
         if (adminOption) {
           adminOption.textContent = t("registerAccountRoleAdmin");
         }
-        logoutButton.textContent = t("logoutButton");
-        saveSettingsButton.textContent = t("saveSettingsButton");
+        setButtonContent(logoutButton, t("logoutButton"), "logout");
+        setButtonContent(saveSettingsButton, t("saveSettingsButton"), "save");
         renderLoginMessage();
         renderAccountManagementMessage();
         renderAccountUserList();
@@ -1802,11 +1854,12 @@
                     data-save-user-index="${index}"
                     ${accountUserListState.savingIndex === index ? "disabled" : ""}
                   >
-                    ${escapeHtml(
+                    <span class="button-icon" aria-hidden="true">${getButtonIconSvg("save")}</span>
+                    <span class="button-label">${escapeHtml(
                       accountUserListState.savingIndex === index
                         ? t("accountUserListSaving")
                         : t("accountUserListSaveButton")
-                    )}
+                    )}</span>
                   </button>
                 </td>
               </tr>
@@ -3253,7 +3306,10 @@
                                     type="button"
                                     class="row-delete-button"
                                     data-delete-row-index="${rowIndex}"
-                                  >${escapeHtml(t("exportModalDeleteRowButton"))}</button>
+                                  >
+                                    <span class="button-icon" aria-hidden="true">${getButtonIconSvg("trash")}</span>
+                                    <span class="button-label">${escapeHtml(t("exportModalDeleteRowButton"))}</span>
+                                  </button>
                                 </td>
                               </tr>
                             `
@@ -3358,7 +3414,7 @@
           exportModalResponseBadge.className = "mini-badge idle";
           exportModalResponseBadge.textContent = t("notUsedYet");
           exportModalResponseBody.innerHTML = `<div class="response-empty">${escapeHtml(t("exportModalIdle"))}</div>`;
-          editExportButton.textContent = t("exportModalEditButton");
+          setButtonContent(editExportButton, t("exportModalEditButton"), "edit");
           editExportButton.disabled = true;
           cancelEditExportButton.hidden = true;
           cancelEditExportButton.disabled = true;
@@ -3385,8 +3441,11 @@
             </div>
             <div class="response-empty">${escapeHtml(t("waitingRespondToWebhook"))}</div>
           `;
-          editExportButton.textContent =
-            state.action === "edit" ? t("exportModalSaveEditButton") : t("exportModalEditButton");
+          setButtonContent(
+            editExportButton,
+            state.action === "edit" ? t("exportModalSaveEditButton") : t("exportModalEditButton"),
+            state.action === "edit" ? "save" : "edit"
+          );
           editExportButton.disabled = true;
           cancelEditExportButton.hidden = true;
           cancelEditExportButton.disabled = true;
@@ -3402,7 +3461,7 @@
           exportModalResponseBadge.className = "mini-badge error";
           exportModalResponseBadge.textContent = t("failedShort");
           exportModalResponseBody.innerHTML = `<div class="response-plain">${escapeHtml(state.message || t("serverConnectionFailed"))}</div>`;
-          editExportButton.textContent = t("exportModalEditButton");
+          setButtonContent(editExportButton, t("exportModalEditButton"), "edit");
           editExportButton.disabled = true;
           cancelEditExportButton.hidden = true;
           cancelEditExportButton.disabled = true;
@@ -3434,7 +3493,11 @@
           </div>
           ${editing ? renderEditableWebhookEditor(state.editedBody) : renderWebhookTable(state.result.webhookBody)}
         `;
-        editExportButton.textContent = editing ? t("exportModalSaveEditButton") : t("exportModalEditButton");
+        setButtonContent(
+          editExportButton,
+          editing ? t("exportModalSaveEditButton") : t("exportModalEditButton"),
+          editing ? "save" : "edit"
+        );
         editExportButton.disabled = !canEditWebhookBody(state.result.webhookBody);
         cancelEditExportButton.hidden = !editing;
         cancelEditExportButton.disabled = !editing;
