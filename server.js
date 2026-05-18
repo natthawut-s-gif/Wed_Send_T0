@@ -1092,6 +1092,12 @@ app.post("/auth/login", async (req, res) => {
       }
     );
     const userRecord = extractUserRecordFromWebhookBody(webhookResponse.data);
+    const resolvedName =
+      (typeof userRecord?.user === "string" && userRecord.user.trim()) ||
+      (typeof userRecord?.username === "string" && userRecord.username.trim()) ||
+      (typeof userRecord?.name === "string" && userRecord.name.trim()) ||
+      email.split("@")[0] ||
+      "";
     const resolvedEmail =
       (typeof userRecord?.useremail === "string" && userRecord.useremail.trim()) ||
       (typeof userRecord?.email === "string" && userRecord.email.trim()) ||
@@ -1146,6 +1152,7 @@ app.post("/auth/login", async (req, res) => {
       provider,
       email,
       user: {
+        name: resolvedName,
         email: resolvedEmail,
         role: resolvedRole
       },

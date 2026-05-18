@@ -491,8 +491,6 @@
     <script>
       const THEME_STORAGE_KEY = "invoice-extraction-theme";
       const LANGUAGE_STORAGE_KEY = "invoice-extraction-language";
-      const SENDER_NAME_STORAGE_KEY = "invoice-extraction-sender-name";
-      const SENDER_EMAIL_STORAGE_KEY = "invoice-extraction-sender-email";
       const TRANSLATIONS = {
         th: {
           documentTitle: "DocExtraction",
@@ -1025,6 +1023,7 @@
       let loginState = {
         isAuthenticated: false,
         provider: "",
+        name: "",
         email: "",
         role: ""
       };
@@ -1147,15 +1146,19 @@
         applyLanguage(savedLanguage || "th");
       }
 
-      function initializeSenderFields() {
-        senderNameInput.value = localStorage.getItem(SENDER_NAME_STORAGE_KEY) || "";
-        senderEmail.value = localStorage.getItem(SENDER_EMAIL_STORAGE_KEY) || "";
-        loginEmailInput.value = senderEmail.value;
+      function syncSenderFieldsFromLogin() {
+        const locked = Boolean(loginState.isAuthenticated);
+        senderNameInput.value = loginState.name || "";
+        senderEmail.value = loginState.email || "";
+        senderNameInput.readOnly = locked;
+        senderEmail.readOnly = locked;
+        senderNameInput.classList.toggle("locked-field", locked);
+        senderEmail.classList.toggle("locked-field", locked);
+        loginEmailInput.value = loginState.email || loginEmailInput.value;
       }
 
-      function persistSenderFields() {
-        localStorage.setItem(SENDER_NAME_STORAGE_KEY, senderNameInput.value);
-        localStorage.setItem(SENDER_EMAIL_STORAGE_KEY, senderEmail.value);
+      function initializeSenderFields() {
+        syncSenderFieldsFromLogin();
       }
 
       function renderStaticText() {
@@ -1384,17 +1387,18 @@
       }
 
       function persistLoginSession(session) {
+        const resolvedName =
+          String(session.name || "").trim() || String(session.email || "").split("@")[0] || "";
         loginState = {
           isAuthenticated: true,
           provider: session.provider || "",
+          name: resolvedName,
           email: session.email || "",
           role: session.role || ""
         };
         localStorage.setItem(LOGIN_SESSION_STORAGE_KEY, JSON.stringify(loginState));
         loginGate.classList.add("hidden");
-        senderEmail.value = session.email || senderEmail.value;
-        loginEmailInput.value = session.email || loginEmailInput.value;
-        persistSenderFields();
+        syncSenderFieldsFromLogin();
         renderAccountManagementState();
         renderUploadHistory();
       }
@@ -1421,6 +1425,7 @@
         loginState = {
           isAuthenticated: false,
           provider: "",
+          name: "",
           email: "",
           role: ""
         };
@@ -1428,6 +1433,7 @@
         loginPasswordInput.value = "";
         registerAccountUsernameInput.value = "";
         registerAccountPasswordInput.value = "";
+        syncSenderFieldsFromLogin();
         loginGate.classList.remove("hidden");
         setLoginMessageState({ state: "success", raw: t("logoutSuccess") });
         try {
@@ -1444,6 +1450,7 @@
           // Ignore provider logout errors and keep local logout state.
         }
         renderAccountManagementState();
+        renderUploadHistory();
         syncModalOpenState();
       }
 
@@ -1490,6 +1497,7 @@
 
           persistLoginSession({
             provider,
+            name: result.user?.name || "",
             email: result.user?.email || payload.email || "",
             role: result.user?.role || ""
           });
@@ -3916,13 +3924,6 @@
 
       englishLanguageButton.addEventListener("click", () => {
         applyLanguage("en");
-      });
-
-      senderNameInput.addEventListener("input", persistSenderFields);
-      senderEmail.addEventListener("input", () => {
-        loginEmailInput.value = senderEmail.value;
-        persistSenderFields();
-        renderUploadHistory();
       });
 
       settingsForm.addEventListener("submit", async (event) => {
